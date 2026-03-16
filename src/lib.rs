@@ -6,6 +6,7 @@ pub mod identity;
 pub mod peer_router;
 pub mod peer_tracker;
 pub mod proto;
+pub mod receiver;
 pub mod server;
 pub mod session_tracker;
 pub mod types;
