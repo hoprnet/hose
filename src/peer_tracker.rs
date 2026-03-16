@@ -62,3 +62,79 @@ impl Default for PeerTracker {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn record_seen_adds_a_peer() {
+        let tracker = PeerTracker::new();
+        tracker.record_seen("peer-1").await;
+
+        let peer = tracker.get_peer("peer-1").await;
+        assert!(peer.is_some());
+        assert_eq!(peer.unwrap().peer_id, "peer-1");
+    }
+
+    #[tokio::test]
+    async fn record_seen_updates_last_seen_for_existing_peer() {
+        let tracker = PeerTracker::new();
+        tracker.record_seen("peer-1").await;
+        let first_seen = tracker.get_peer("peer-1").await.unwrap().last_seen;
+
+        // Small delay to ensure timestamp differs
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+        tracker.record_seen("peer-1").await;
+        let second_seen = tracker.get_peer("peer-1").await.unwrap().last_seen;
+
+        assert!(second_seen > first_seen);
+        // Should still be one peer, not two
+        assert_eq!(tracker.peer_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn list_peers_returns_sorted_by_peer_id() {
+        let tracker = PeerTracker::new();
+        tracker.record_seen("charlie").await;
+        tracker.record_seen("alice").await;
+        tracker.record_seen("bob").await;
+
+        let peers = tracker.list_peers().await;
+        let ids: Vec<&str> = peers.iter().map(|p| p.peer_id.as_str()).collect();
+        assert_eq!(ids, vec!["alice", "bob", "charlie"]);
+    }
+
+    #[tokio::test]
+    async fn get_peer_returns_none_for_unknown() {
+        let tracker = PeerTracker::new();
+        assert!(tracker.get_peer("nonexistent").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn peer_count_reflects_tracked_peers() {
+        let tracker = PeerTracker::new();
+        assert_eq!(tracker.peer_count().await, 0);
+
+        tracker.record_seen("peer-1").await;
+        assert_eq!(tracker.peer_count().await, 1);
+
+        tracker.record_seen("peer-2").await;
+        assert_eq!(tracker.peer_count().await, 2);
+
+        // Duplicate should not increase count
+        tracker.record_seen("peer-1").await;
+        assert_eq!(tracker.peer_count().await, 2);
+    }
+
+    #[tokio::test]
+    async fn is_tracked_returns_correct_status() {
+        let tracker = PeerTracker::new();
+        assert!(!tracker.is_tracked("peer-1").await);
+
+        tracker.record_seen("peer-1").await;
+        assert!(tracker.is_tracked("peer-1").await);
+        assert!(!tracker.is_tracked("peer-2").await);
+    }
+}

@@ -58,3 +58,105 @@ impl Default for PeerRouter {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn default_routing_is_discard() {
+        let router = PeerRouter::new();
+        assert!(matches!(router.route("peer-1").await, RoutingDecision::Discard));
+    }
+
+    #[tokio::test]
+    async fn add_session_enables_retain_for_peers() {
+        let router = PeerRouter::new();
+        let session_id = Uuid::new_v4();
+        router
+            .add_session(session_id, &["peer-1".to_string(), "peer-2".to_string()])
+            .await;
+
+        match router.route("peer-1").await {
+            RoutingDecision::Retain { session_ids } => {
+                assert_eq!(session_ids.len(), 1);
+                assert!(session_ids.contains(&session_id));
+            }
+            RoutingDecision::Discard => panic!("expected Retain, got Discard"),
+        }
+
+        match router.route("peer-2").await {
+            RoutingDecision::Retain { session_ids } => {
+                assert!(session_ids.contains(&session_id));
+            }
+            RoutingDecision::Discard => panic!("expected Retain, got Discard"),
+        }
+    }
+
+    #[tokio::test]
+    async fn remove_session_reverts_to_discard() {
+        let router = PeerRouter::new();
+        let session_id = Uuid::new_v4();
+        router
+            .add_session(session_id, &["peer-1".to_string()])
+            .await;
+
+        router.remove_session(session_id).await;
+
+        assert!(matches!(router.route("peer-1").await, RoutingDecision::Discard));
+    }
+
+    #[tokio::test]
+    async fn multiple_sessions_for_same_peer() {
+        let router = PeerRouter::new();
+        let s1 = Uuid::new_v4();
+        let s2 = Uuid::new_v4();
+
+        router.add_session(s1, &["peer-1".to_string()]).await;
+        router.add_session(s2, &["peer-1".to_string()]).await;
+
+        match router.route("peer-1").await {
+            RoutingDecision::Retain { session_ids } => {
+                assert_eq!(session_ids.len(), 2);
+                assert!(session_ids.contains(&s1));
+                assert!(session_ids.contains(&s2));
+            }
+            RoutingDecision::Discard => panic!("expected Retain, got Discard"),
+        }
+    }
+
+    #[tokio::test]
+    async fn remove_one_session_still_retains_for_other() {
+        let router = PeerRouter::new();
+        let s1 = Uuid::new_v4();
+        let s2 = Uuid::new_v4();
+
+        router.add_session(s1, &["peer-1".to_string()]).await;
+        router.add_session(s2, &["peer-1".to_string()]).await;
+
+        router.remove_session(s1).await;
+
+        match router.route("peer-1").await {
+            RoutingDecision::Retain { session_ids } => {
+                assert_eq!(session_ids.len(), 1);
+                assert!(session_ids.contains(&s2));
+            }
+            RoutingDecision::Discard => panic!("expected Retain after removing only one session"),
+        }
+    }
+
+    #[tokio::test]
+    async fn has_retained_peers_reflects_state() {
+        let router = PeerRouter::new();
+        assert!(!router.has_retained_peers().await);
+
+        let session_id = Uuid::new_v4();
+        router
+            .add_session(session_id, &["peer-1".to_string()])
+            .await;
+        assert!(router.has_retained_peers().await);
+
+        router.remove_session(session_id).await;
+        assert!(!router.has_retained_peers().await);
+    }
+}
