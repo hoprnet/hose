@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 
 use crate::config::Config;
+use crate::peer_router::PeerRouter;
 use crate::peer_tracker::PeerTracker;
 use crate::session_tracker::SessionTracker;
 
@@ -12,6 +13,7 @@ use crate::session_tracker::SessionTracker;
 pub struct AppState {
     pub config: Arc<Config>,
     pub db: SqlitePool,
+    pub peer_router: PeerRouter,
     pub peer_tracker: PeerTracker,
     pub session_tracker: SessionTracker,
     /// Broadcast channel for SSE live events.
@@ -32,6 +34,7 @@ impl AppState {
     pub fn new(
         config: Config,
         db: SqlitePool,
+        peer_router: PeerRouter,
         peer_tracker: PeerTracker,
         session_tracker: SessionTracker,
     ) -> Self {
@@ -39,6 +42,7 @@ impl AppState {
         Self {
             config: Arc::new(config),
             db,
+            peer_router,
             peer_tracker,
             session_tracker,
             event_tx,
@@ -57,6 +61,19 @@ pub fn build_router(state: AppState) -> Router {
         .route("/health", axum::routing::get(health_check))
         .route("/api/peers", axum::routing::get(crate::api::peers::list_peers))
         .route("/api/sessions", axum::routing::get(crate::api::sessions::list_sessions))
+        .route(
+            "/api/debug-sessions",
+            axum::routing::post(crate::api::debug_sessions::create_session)
+                .get(crate::api::debug_sessions::list_sessions),
+        )
+        .route(
+            "/api/debug-sessions/:id",
+            axum::routing::get(crate::api::debug_sessions::get_session),
+        )
+        .route(
+            "/api/debug-sessions/:id/end",
+            axum::routing::post(crate::api::debug_sessions::end_session),
+        )
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http())
 }
