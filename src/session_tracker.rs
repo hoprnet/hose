@@ -29,6 +29,7 @@ impl SessionTracker {
     ) {
         let now = Utc::now();
         let mut sessions = self.sessions.write().await;
+        let is_new = !sessions.contains_key(session_id);
 
         sessions
             .entry(session_id.to_string())
@@ -54,6 +55,15 @@ impl SessionTracker {
                 first_seen: now,
                 last_seen: now,
             });
+
+        if is_new {
+            tracing::info!(
+                session_id = %session_id,
+                protocol = %protocol,
+                hop_count = hop_count,
+                "HOPR session first seen"
+            );
+        }
     }
 
     /// Get a snapshot of all active sessions.
