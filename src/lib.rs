@@ -4,3 +4,5 @@
 // - Web UI served via HTTP
 // - Embedded SQLite storage for debug session data
 // - GraphQL client for blockchain indexer queries
+
+pub mod config;
