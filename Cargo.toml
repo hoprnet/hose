@@ -3,3 +3,42 @@ name = "hose"
 version = "0.1.0"
 edition = "2024"
 description = "HOPR Session Explorer - debugging and diagnostic tool for the HOPR network"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# gRPC server (OTLP receiver)
+tonic = "0.13"
+prost = "0.13"
+prost-types = "0.13"
+
+# HTTP server
+axum = { version = "0.8", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# GraphQL client (for Blokli indexer)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+
+# HTML templating (server-rendered pages)
+askama = "0.13"
+
+[build-dependencies]
+tonic-build = "0.13"
