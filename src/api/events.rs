@@ -2,8 +2,8 @@ use axum::extract::State;
 use axum::response::sse::{Event as SseEvent, Sse};
 use futures::stream::Stream;
 use std::convert::Infallible;
-use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
+use tokio_stream::wrappers::BroadcastStream;
 
 use crate::server::{AppState, Event};
 
@@ -29,7 +29,6 @@ pub async fn event_stream(
     });
 
     Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new()
-            .interval(std::time::Duration::from_secs(15)),
+        axum::response::sse::KeepAlive::new().interval(std::time::Duration::from_secs(15)),
     )
 }

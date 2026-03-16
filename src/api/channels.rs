@@ -1,8 +1,8 @@
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::Json;
 
-use crate::blokli::channels::{query_peer_channels, ChannelData};
+use crate::blokli::channels::{ChannelData, query_peer_channels};
 use crate::server::AppState;
 
 /// GET /api/peers/:peer_id/channels - Query on-chain channels for a peer.
@@ -30,7 +30,12 @@ pub async fn get_peer_channels(
 
     let channels = query_peer_channels(blokli_client, &key_id)
         .await
-        .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Indexer query failed: {e}")))?;
+        .map_err(|e| {
+            (
+                StatusCode::BAD_GATEWAY,
+                format!("Indexer query failed: {e}"),
+            )
+        })?;
 
     Ok(Json(channels))
 }

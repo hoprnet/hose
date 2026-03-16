@@ -60,11 +60,9 @@ impl TraceService for TraceReceiver {
 
             // Update peer presence
             self.peer_tracker.record_seen(&peer_id).await;
-            let _ = self
-                .event_tx
-                .send(Event::PeerSeen {
-                    peer_id: peer_id.clone(),
-                });
+            let _ = self.event_tx.send(Event::PeerSeen {
+                peer_id: peer_id.clone(),
+            });
 
             // Extract HOPR session attributes from spans
             for scope_spans in &resource_spans.scope_spans {
@@ -87,14 +85,11 @@ impl TraceService for TraceReceiver {
 
                     if let Some(sid) = &session_id {
                         if !sid.is_empty() {
-                            let protocol = extract_string_attr(
-                                &span.attributes,
-                                "hopr.session.protocol",
-                            )
-                            .unwrap_or_default();
-                            let hop_count =
-                                extract_int_attr(&span.attributes, "hopr.session.hops")
-                                    .unwrap_or(0) as u32;
+                            let protocol =
+                                extract_string_attr(&span.attributes, "hopr.session.protocol")
+                                    .unwrap_or_default();
+                            let hop_count = extract_int_attr(&span.attributes, "hopr.session.hops")
+                                .unwrap_or(0) as u32;
                             let role_str =
                                 extract_string_attr(&span.attributes, "hopr.session.role")
                                     .unwrap_or_default();
@@ -157,10 +152,7 @@ impl TraceService for TraceReceiver {
     }
 }
 
-fn extract_string_attr(
-    attrs: &[crate::proto::common::KeyValue],
-    key: &str,
-) -> Option<String> {
+fn extract_string_attr(attrs: &[crate::proto::common::KeyValue], key: &str) -> Option<String> {
     attrs.iter().find_map(|a| {
         if a.key == key {
             a.value.as_ref().and_then(|v| {
@@ -175,10 +167,7 @@ fn extract_string_attr(
     })
 }
 
-fn extract_int_attr(
-    attrs: &[crate::proto::common::KeyValue],
-    key: &str,
-) -> Option<i64> {
+fn extract_int_attr(attrs: &[crate::proto::common::KeyValue], key: &str) -> Option<i64> {
     attrs.iter().find_map(|a| {
         if a.key == key {
             a.value.as_ref().and_then(|v| {

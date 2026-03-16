@@ -2,7 +2,7 @@ use std::time::Duration;
 use tokio::sync::broadcast;
 
 use super::BlokliClient;
-use super::channels::{query_peer_channels, ChannelData};
+use super::channels::{ChannelData, query_peer_channels};
 
 /// Event emitted when channel state changes are detected.
 #[derive(Debug, Clone)]

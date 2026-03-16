@@ -55,11 +55,9 @@ impl MetricsService for MetricsReceiver {
             tracing::debug!(peer_id = %peer_id, "metrics export received");
 
             self.peer_tracker.record_seen(&peer_id).await;
-            let _ = self
-                .event_tx
-                .send(Event::PeerSeen {
-                    peer_id: peer_id.clone(),
-                });
+            let _ = self.event_tx.send(Event::PeerSeen {
+                peer_id: peer_id.clone(),
+            });
 
             match self.peer_router.route(&peer_id).await {
                 RoutingDecision::Discard => {

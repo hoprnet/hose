@@ -9,7 +9,7 @@ description = "HOPR Session Explorer - debugging and diagnostic tool for the HOP
 tokio = { version = "1", features = ["full"] }
 
 # gRPC server (OTLP receiver)
-tonic = "0.13"
+tonic = "0.12"
 prost = "0.13"
 prost-types = "0.13"
 
@@ -49,4 +49,4 @@ thiserror = "2"
 askama = "0.13"
 
 [build-dependencies]
-tonic-build = "0.13"
+tonic-build = "0.12"

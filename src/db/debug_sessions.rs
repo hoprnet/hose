@@ -16,12 +16,14 @@ pub async fn create_debug_session(
 
     let mut tx = pool.begin().await?;
 
-    sqlx::query("INSERT INTO debug_sessions (id, name, status, created_at) VALUES (?, ?, 'active', ?)")
-        .bind(&id_str)
-        .bind(name)
-        .bind(&now)
-        .execute(&mut *tx)
-        .await?;
+    sqlx::query(
+        "INSERT INTO debug_sessions (id, name, status, created_at) VALUES (?, ?, 'active', ?)",
+    )
+    .bind(&id_str)
+    .bind(name)
+    .bind(&now)
+    .execute(&mut *tx)
+    .await?;
 
     for peer_id in peer_ids {
         sqlx::query("INSERT INTO debug_session_peers (debug_session_id, peer_id) VALUES (?, ?)")
@@ -84,9 +86,7 @@ pub async fn get_debug_session(
 }
 
 /// List all debug sessions, most recent first.
-pub async fn list_debug_sessions(
-    pool: &SqlitePool,
-) -> Result<Vec<DebugSession>, sqlx::Error> {
+pub async fn list_debug_sessions(pool: &SqlitePool) -> Result<Vec<DebugSession>, sqlx::Error> {
     let rows = sqlx::query_as::<_, (String, String, String, String, Option<String>)>(
         "SELECT id, name, status, created_at, ended_at FROM debug_sessions ORDER BY created_at DESC",
     )
@@ -120,10 +120,7 @@ pub async fn list_debug_sessions(
 }
 
 /// End a debug session by setting its status to completed.
-pub async fn end_debug_session(
-    pool: &SqlitePool,
-    session_id: Uuid,
-) -> Result<bool, sqlx::Error> {
+pub async fn end_debug_session(pool: &SqlitePool, session_id: Uuid) -> Result<bool, sqlx::Error> {
     let now = Utc::now().to_rfc3339();
     let result = sqlx::query(
         "UPDATE debug_sessions SET status = 'completed', ended_at = ? WHERE id = ? AND status = 'active'",
@@ -144,12 +141,11 @@ pub async fn delete_expired_sessions(
     let cutoff = Utc::now() - chrono::Duration::hours(retention_hours as i64);
     let cutoff_str = cutoff.to_rfc3339();
 
-    let result = sqlx::query(
-        "DELETE FROM debug_sessions WHERE status = 'completed' AND ended_at < ?",
-    )
-    .bind(&cutoff_str)
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("DELETE FROM debug_sessions WHERE status = 'completed' AND ended_at < ?")
+            .bind(&cutoff_str)
+            .execute(pool)
+            .await?;
 
     Ok(result.rows_affected())
 }

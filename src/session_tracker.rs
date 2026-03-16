@@ -144,7 +144,11 @@ mod tests {
         let session = tracker.get_session("s1").await.unwrap();
         assert_eq!(session.participants.len(), 2);
 
-        let peer_ids: Vec<&str> = session.participants.iter().map(|p| p.peer_id.as_str()).collect();
+        let peer_ids: Vec<&str> = session
+            .participants
+            .iter()
+            .map(|p| p.peer_id.as_str())
+            .collect();
         assert!(peer_ids.contains(&"peer-1"));
         assert!(peer_ids.contains(&"peer-2"));
     }

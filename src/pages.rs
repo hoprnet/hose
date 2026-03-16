@@ -143,15 +143,11 @@ pub async fn debug_session_detail(
     let metrics_result = db::telemetry::query_metrics(&state.db, session_id, &pagination).await;
     let logs_result = db::telemetry::query_logs(&state.db, session_id, &pagination).await;
 
-    let (spans, span_count) = spans_result
-        .map(|r| (r.items, r.total))
-        .unwrap_or_default();
+    let (spans, span_count) = spans_result.map(|r| (r.items, r.total)).unwrap_or_default();
     let (metrics, metric_count) = metrics_result
         .map(|r| (r.items, r.total))
         .unwrap_or_default();
-    let (logs, log_count) = logs_result
-        .map(|r| (r.items, r.total))
-        .unwrap_or_default();
+    let (logs, log_count) = logs_result.map(|r| (r.items, r.total)).unwrap_or_default();
 
     render_template(&DebugSessionDetailTemplate {
         session,

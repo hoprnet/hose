@@ -10,7 +10,10 @@ pub struct PaginationParams {
 
 impl Default for PaginationParams {
     fn default() -> Self {
-        Self { limit: 50, offset: 0 }
+        Self {
+            limit: 50,
+            offset: 0,
+        }
     }
 }
 
@@ -74,12 +77,11 @@ pub async fn query_spans(
 ) -> Result<PaginatedResult<SpanRow>, sqlx::Error> {
     let session_str = session_id.to_string();
 
-    let total: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM telemetry_spans WHERE debug_session_id = ?"
-    )
-    .bind(&session_str)
-    .fetch_one(pool)
-    .await?;
+    let total: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM telemetry_spans WHERE debug_session_id = ?")
+            .bind(&session_str)
+            .fetch_one(pool)
+            .await?;
 
     let items = sqlx::query_as::<_, SpanRow>(
         "SELECT id, debug_session_id, peer_id, trace_id, span_id, operation_name, start_time, end_time, attributes, created_at FROM telemetry_spans WHERE debug_session_id = ? ORDER BY start_time DESC LIMIT ? OFFSET ?"
@@ -90,7 +92,12 @@ pub async fn query_spans(
     .fetch_all(pool)
     .await?;
 
-    Ok(PaginatedResult { items, total: total.0, limit: pagination.limit, offset: pagination.offset })
+    Ok(PaginatedResult {
+        items,
+        total: total.0,
+        limit: pagination.limit,
+        offset: pagination.offset,
+    })
 }
 
 /// Query metrics for a debug session with pagination.
@@ -101,12 +108,11 @@ pub async fn query_metrics(
 ) -> Result<PaginatedResult<MetricRow>, sqlx::Error> {
     let session_str = session_id.to_string();
 
-    let total: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM telemetry_metrics WHERE debug_session_id = ?"
-    )
-    .bind(&session_str)
-    .fetch_one(pool)
-    .await?;
+    let total: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM telemetry_metrics WHERE debug_session_id = ?")
+            .bind(&session_str)
+            .fetch_one(pool)
+            .await?;
 
     let items = sqlx::query_as::<_, MetricRow>(
         "SELECT id, debug_session_id, peer_id, metric_name, metric_type, value, unit, attributes, timestamp, created_at FROM telemetry_metrics WHERE debug_session_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?"
@@ -117,7 +123,12 @@ pub async fn query_metrics(
     .fetch_all(pool)
     .await?;
 
-    Ok(PaginatedResult { items, total: total.0, limit: pagination.limit, offset: pagination.offset })
+    Ok(PaginatedResult {
+        items,
+        total: total.0,
+        limit: pagination.limit,
+        offset: pagination.offset,
+    })
 }
 
 /// Query logs for a debug session with pagination.
@@ -128,12 +139,11 @@ pub async fn query_logs(
 ) -> Result<PaginatedResult<LogRow>, sqlx::Error> {
     let session_str = session_id.to_string();
 
-    let total: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM telemetry_logs WHERE debug_session_id = ?"
-    )
-    .bind(&session_str)
-    .fetch_one(pool)
-    .await?;
+    let total: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM telemetry_logs WHERE debug_session_id = ?")
+            .bind(&session_str)
+            .fetch_one(pool)
+            .await?;
 
     let items = sqlx::query_as::<_, LogRow>(
         "SELECT id, debug_session_id, peer_id, severity, body, attributes, timestamp, created_at FROM telemetry_logs WHERE debug_session_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?"
@@ -144,5 +154,10 @@ pub async fn query_logs(
     .fetch_all(pool)
     .await?;
 
-    Ok(PaginatedResult { items, total: total.0, limit: pagination.limit, offset: pagination.offset })
+    Ok(PaginatedResult {
+        items,
+        total: total.0,
+        limit: pagination.limit,
+        offset: pagination.offset,
+    })
 }

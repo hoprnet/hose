@@ -69,7 +69,11 @@ async fn list_sessions_returns_most_recent_first() {
 #[tokio::test]
 async fn get_session_by_id_returns_all_fields() {
     let pool = setup_db().await;
-    let peer_ids = vec!["node-1".to_string(), "node-2".to_string(), "node-3".to_string()];
+    let peer_ids = vec![
+        "node-1".to_string(),
+        "node-2".to_string(),
+        "node-3".to_string(),
+    ];
 
     let created = create_debug_session(&pool, "full-fields", &peer_ids)
         .await
@@ -96,11 +100,17 @@ async fn end_session_changes_status_and_sets_ended_at() {
         .unwrap();
 
     let ended = end_debug_session(&pool, session.id).await.unwrap();
-    assert!(ended, "end_debug_session should return true for an active session");
+    assert!(
+        ended,
+        "end_debug_session should return true for an active session"
+    );
 
     let fetched = get_debug_session(&pool, session.id).await.unwrap().unwrap();
     assert_eq!(fetched.status, DebugSessionStatus::Completed);
-    assert!(fetched.ended_at.is_some(), "ended_at should be set after ending a session");
+    assert!(
+        fetched.ended_at.is_some(),
+        "ended_at should be set after ending a session"
+    );
 }
 
 #[tokio::test]
@@ -115,7 +125,10 @@ async fn end_already_completed_session_returns_false() {
     assert!(first_end);
 
     let second_end = end_debug_session(&pool, session.id).await.unwrap();
-    assert!(!second_end, "ending an already-completed session should return false");
+    assert!(
+        !second_end,
+        "ending an already-completed session should return false"
+    );
 }
 
 #[tokio::test]
@@ -123,7 +136,10 @@ async fn get_nonexistent_session_returns_none() {
     let pool = setup_db().await;
 
     let result = get_debug_session(&pool, Uuid::new_v4()).await.unwrap();
-    assert!(result.is_none(), "getting a non-existent session should return None");
+    assert!(
+        result.is_none(),
+        "getting a non-existent session should return None"
+    );
 }
 
 #[tokio::test]
@@ -152,5 +168,8 @@ async fn delete_expired_sessions_cleans_up_completed_sessions() {
 
     // Verify the session is gone
     let fetched = get_debug_session(&pool, session.id).await.unwrap();
-    assert!(fetched.is_none(), "expired session should be deleted from the database");
+    assert!(
+        fetched.is_none(),
+        "expired session should be deleted from the database"
+    );
 }

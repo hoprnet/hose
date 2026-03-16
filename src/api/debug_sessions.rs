@@ -1,6 +1,6 @@
+use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::Json;
 use serde::Deserialize;
 
 use crate::db::debug_sessions;
@@ -28,7 +28,10 @@ pub async fn create_session(
         })?;
 
     // Register peers in the router for retention
-    state.peer_router.add_session(session.id, &req.peer_ids).await;
+    state
+        .peer_router
+        .add_session(session.id, &req.peer_ids)
+        .await;
 
     state.emit(Event::DebugSessionUpdated {
         session_id: session.id.to_string(),
@@ -102,7 +105,10 @@ pub async fn end_session(
 
     if !ended {
         tracing::warn!(session_id = %session_id, "debug session not found or already completed");
-        return Err((StatusCode::NOT_FOUND, "session not found or already completed".to_string()));
+        return Err((
+            StatusCode::NOT_FOUND,
+            "session not found or already completed".to_string(),
+        ));
     }
 
     // Remove from peer router

@@ -1,10 +1,10 @@
 use hose::peer_router::PeerRouter;
 use hose::peer_tracker::PeerTracker;
-use hose::proto::common::{any_value, AnyValue, KeyValue};
+use hose::proto::common::{AnyValue, KeyValue, any_value};
 use hose::proto::resource::Resource;
 use hose::proto::trace::{ResourceSpans, ScopeSpans, Span};
-use hose::proto::trace_service::trace_service_server::TraceService;
 use hose::proto::trace_service::ExportTraceServiceRequest;
+use hose::proto::trace_service::trace_service_server::TraceService;
 use hose::receiver::trace::TraceReceiver;
 use hose::session_tracker::SessionTracker;
 use hose::write_buffer::spawn_write_buffer;
@@ -61,6 +61,7 @@ fn trace_request_for_peer(peer_id: &str, span_name: &str) -> ExportTraceServiceR
                     dropped_links_count: 0,
                     status: None,
                     flags: 0,
+                    trace_state: String::new(),
                 }],
                 schema_url: String::new(),
             }],
@@ -106,6 +107,7 @@ fn trace_request_with_session(
                     dropped_links_count: 0,
                     status: None,
                     flags: 0,
+                    trace_state: String::new(),
                 }],
                 schema_url: String::new(),
             }],
@@ -202,7 +204,10 @@ async fn trace_export_with_empty_peer_id_is_ignored() {
     let req = Request::new(trace_request_for_peer("", "test.span"));
 
     let resp = receiver.export(req).await;
-    assert!(resp.is_ok(), "export should succeed even with empty peer_id");
+    assert!(
+        resp.is_ok(),
+        "export should succeed even with empty peer_id"
+    );
     assert_eq!(
         receiver.peer_tracker.peer_count().await,
         0,
@@ -403,11 +408,10 @@ async fn retained_span_includes_correct_operation_name() {
 
     tokio::time::sleep(Duration::from_millis(200)).await;
 
-    let row: (String,) =
-        sqlx::query_as("SELECT operation_name FROM telemetry_spans LIMIT 1")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let row: (String,) = sqlx::query_as("SELECT operation_name FROM telemetry_spans LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
 
     assert_eq!(row.0, "hopr.relay.forward");
 }

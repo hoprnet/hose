@@ -76,9 +76,9 @@ impl LogsService for LogsReceiver {
                                 .as_ref()
                                 .and_then(|v| {
                                     v.value.as_ref().map(|val| match val {
-                                        crate::proto::common::any_value::Value::StringValue(
-                                            s,
-                                        ) => s.clone(),
+                                        crate::proto::common::any_value::Value::StringValue(s) => {
+                                            s.clone()
+                                        }
                                         _ => format!("{:?}", val),
                                     })
                                 })

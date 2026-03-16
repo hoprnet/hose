@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     // Create the identity bridge for blockchain key <-> peer ID lookups.
-    let _identity_bridge = IdentityBridge::new(blokli_client);
+    let identity_bridge = IdentityBridge::new(blokli_client.clone());
 
     // Build the shared application state (includes an SSE broadcast channel).
     let state = AppState::new(
@@ -78,6 +78,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         peer_router.clone(),
         peer_tracker.clone(),
         session_tracker.clone(),
+        identity_bridge,
+        blokli_client,
     );
 
     // Construct gRPC service receivers sharing the same tracking state.

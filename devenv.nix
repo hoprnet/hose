@@ -2,10 +2,7 @@
 
 {
   # Rust toolchain
-  languages.rust = {
-    enable = true;
-    channel = "stable";
-  };
+  languages.rust.enable = true;
 
   # Project-specific packages
   packages = with pkgs; [

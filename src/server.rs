@@ -80,8 +80,14 @@ pub fn build_router(state: AppState) -> Router {
         )
         // JSON API routes
         .route("/health", axum::routing::get(health_check))
-        .route("/api/peers", axum::routing::get(crate::api::peers::list_peers))
-        .route("/api/sessions", axum::routing::get(crate::api::sessions::list_sessions))
+        .route(
+            "/api/peers",
+            axum::routing::get(crate::api::peers::list_peers),
+        )
+        .route(
+            "/api/sessions",
+            axum::routing::get(crate::api::sessions::list_sessions),
+        )
         .route(
             "/api/debug-sessions",
             axum::routing::post(crate::api::debug_sessions::create_session)

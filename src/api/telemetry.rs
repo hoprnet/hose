@@ -1,9 +1,9 @@
+use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::Json;
 use serde::Deserialize;
 
-use crate::db::telemetry::{self, PaginatedResult, PaginationParams, SpanRow, MetricRow, LogRow};
+use crate::db::telemetry::{self, LogRow, MetricRow, PaginatedResult, PaginationParams, SpanRow};
 use crate::server::AppState;
 
 #[derive(Debug, Deserialize)]

@@ -93,10 +93,7 @@ async fn flush_batch(pool: &SqlitePool, batch: &mut Vec<WriteRecord>) {
     batch.clear();
 }
 
-async fn write_batch_to_db(
-    pool: &SqlitePool,
-    batch: &[WriteRecord],
-) -> Result<(), sqlx::Error> {
+async fn write_batch_to_db(pool: &SqlitePool, batch: &[WriteRecord]) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
 
     for record in batch {
@@ -274,7 +271,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(count.0, 1, "one span record should have been flushed to the database");
+        assert_eq!(
+            count.0, 1,
+            "one span record should have been flushed to the database"
+        );
     }
 
     #[tokio::test]
@@ -319,6 +319,9 @@ mod tests {
         let session_id = Uuid::new_v4();
         let result = sender.try_send(make_record(session_id, RecordType::Log));
 
-        assert!(!result, "try_send should return false when the channel is closed");
+        assert!(
+            !result,
+            "try_send should return false when the channel is closed"
+        );
     }
 }
