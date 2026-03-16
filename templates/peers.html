@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Peers - HOSE{% endblock %}
+
+{% block content %}
+<h1>Tracked Peers</h1>
+<div class="card">
+    {% if peers.is_empty() %}
+    <div class="empty">No peers have been observed yet.</div>
+    {% else %}
+    <table>
+        <thead>
+            <tr>
+                <th>Peer ID</th>
+                <th>Last Seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for peer in peers %}
+            <tr>
+                <td><code>{{ peer.peer_id }}</code></td>
+                <td>{{ peer.last_seen }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

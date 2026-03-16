@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - HOSE{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+<div class="stats">
+    <div class="stat">
+        <div class="value">{{ peer_count }}</div>
+        <div class="label">Tracked Peers</div>
+    </div>
+    <div class="stat">
+        <div class="value">{{ session_count }}</div>
+        <div class="label">Active Sessions</div>
+    </div>
+    <div class="stat">
+        <div class="value">{{ debug_session_count }}</div>
+        <div class="label">Debug Sessions</div>
+    </div>
+</div>
+{% endblock %}
