@@ -3,7 +3,9 @@ use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
+use crate::api;
 use crate::config::Config;
+use crate::session_tracker::SessionTracker;
 
 /// Shared application state accessible from all HTTP handlers.
 #[derive(Debug, Clone)]
@@ -12,6 +14,7 @@ pub struct AppState {
     pub db: SqlitePool,
     /// Broadcast channel for SSE live events.
     pub event_tx: broadcast::Sender<Event>,
+    pub session_tracker: SessionTracker,
 }
 
 /// Events pushed to connected browsers via SSE.
@@ -25,12 +28,13 @@ pub enum Event {
 }
 
 impl AppState {
-    pub fn new(config: Config, db: SqlitePool) -> Self {
+    pub fn new(config: Config, db: SqlitePool, session_tracker: SessionTracker) -> Self {
         let (event_tx, _) = broadcast::channel(1024);
         Self {
             config: Arc::new(config),
             db,
             event_tx,
+            session_tracker,
         }
     }
 
@@ -44,6 +48,7 @@ impl AppState {
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/health", axum::routing::get(health_check))
+        .route("/api/sessions", axum::routing::get(api::sessions::list_sessions))
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http())
 }
