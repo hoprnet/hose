@@ -1,3 +1,4 @@
+pub mod api;
 pub mod blokli;
 pub mod config;
 pub mod db;
