@@ -4,12 +4,14 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 
 use crate::config::Config;
+use crate::peer_tracker::PeerTracker;
 
 /// Shared application state accessible from all HTTP handlers.
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub config: Arc<Config>,
     pub db: SqlitePool,
+    pub peer_tracker: PeerTracker,
     /// Broadcast channel for SSE live events.
     pub event_tx: broadcast::Sender<Event>,
 }
@@ -25,11 +27,12 @@ pub enum Event {
 }
 
 impl AppState {
-    pub fn new(config: Config, db: SqlitePool) -> Self {
+    pub fn new(config: Config, db: SqlitePool, peer_tracker: PeerTracker) -> Self {
         let (event_tx, _) = broadcast::channel(1024);
         Self {
             config: Arc::new(config),
             db,
+            peer_tracker,
             event_tx,
         }
     }
@@ -44,6 +47,7 @@ impl AppState {
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/health", axum::routing::get(health_check))
+        .route("/api/peers", axum::routing::get(crate::api::peers::list_peers))
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http())
 }
