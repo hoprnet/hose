@@ -1,4 +1,5 @@
 pub mod channels;
+pub mod subscriptions;
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
