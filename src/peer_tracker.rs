@@ -23,6 +23,7 @@ impl PeerTracker {
     pub async fn record_seen(&self, peer_id: &str) {
         let now = Utc::now();
         let mut peers = self.peers.write().await;
+        let is_new = !peers.contains_key(peer_id);
         peers
             .entry(peer_id.to_string())
             .and_modify(|p| p.last_seen = now)
@@ -30,6 +31,9 @@ impl PeerTracker {
                 peer_id: peer_id.to_string(),
                 last_seen: now,
             });
+        if is_new {
+            tracing::info!(peer_id = %peer_id, "peer first seen");
+        }
     }
 
     /// Get a snapshot of all tracked peers.

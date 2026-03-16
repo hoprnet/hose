@@ -48,8 +48,11 @@ impl LogsService for LogsReceiver {
                 .unwrap_or_default();
 
             if peer_id.is_empty() {
+                tracing::warn!("logs received with empty peer_id, skipping resource_logs");
                 continue;
             }
+
+            tracing::debug!(peer_id = %peer_id, "logs export received");
 
             self.peer_tracker.record_seen(&peer_id).await;
             let _ = self.event_tx.send(Event::PeerSeen {
@@ -57,8 +60,15 @@ impl LogsService for LogsReceiver {
             });
 
             match self.peer_router.route(&peer_id).await {
-                RoutingDecision::Discard => {}
+                RoutingDecision::Discard => {
+                    tracing::debug!(peer_id = %peer_id, "logs discarded by routing");
+                }
                 RoutingDecision::Retain { session_ids } => {
+                    tracing::debug!(
+                        peer_id = %peer_id,
+                        session_count = session_ids.len(),
+                        "logs retained for debug sessions"
+                    );
                     for scope_logs in &resource_logs.scope_logs {
                         for log_record in &scope_logs.log_records {
                             let body = log_record

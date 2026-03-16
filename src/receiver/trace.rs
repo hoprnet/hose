@@ -52,8 +52,11 @@ impl TraceService for TraceReceiver {
                 .unwrap_or_default();
 
             if peer_id.is_empty() {
+                tracing::warn!("trace received with empty peer_id, skipping resource_spans");
                 continue;
             }
+
+            tracing::debug!(peer_id = %peer_id, "trace export received");
 
             // Update peer presence
             self.peer_tracker.record_seen(&peer_id).await;
@@ -116,8 +119,15 @@ impl TraceService for TraceReceiver {
 
                     // Check routing decision
                     match self.peer_router.route(&peer_id).await {
-                        RoutingDecision::Discard => {}
+                        RoutingDecision::Discard => {
+                            tracing::debug!(peer_id = %peer_id, "trace span discarded by routing");
+                        }
                         RoutingDecision::Retain { session_ids } => {
+                            tracing::debug!(
+                                peer_id = %peer_id,
+                                session_count = session_ids.len(),
+                                "trace span retained for debug sessions"
+                            );
                             let payload = serde_json::json!({
                                 "name": span.name,
                                 "traceId": hex::encode(&span.trace_id),

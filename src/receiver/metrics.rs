@@ -48,8 +48,11 @@ impl MetricsService for MetricsReceiver {
                 .unwrap_or_default();
 
             if peer_id.is_empty() {
+                tracing::warn!("metrics received with empty peer_id, skipping resource_metrics");
                 continue;
             }
+
+            tracing::debug!(peer_id = %peer_id, "metrics export received");
 
             self.peer_tracker.record_seen(&peer_id).await;
             let _ = self
@@ -59,8 +62,15 @@ impl MetricsService for MetricsReceiver {
                 });
 
             match self.peer_router.route(&peer_id).await {
-                RoutingDecision::Discard => {}
+                RoutingDecision::Discard => {
+                    tracing::debug!(peer_id = %peer_id, "metrics discarded by routing");
+                }
                 RoutingDecision::Retain { session_ids } => {
+                    tracing::debug!(
+                        peer_id = %peer_id,
+                        session_count = session_ids.len(),
+                        "metrics retained for debug sessions"
+                    );
                     for scope_metrics in &resource_metrics.scope_metrics {
                         for metric in &scope_metrics.metrics {
                             let payload = serde_json::json!({

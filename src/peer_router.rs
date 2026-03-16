@@ -25,6 +25,11 @@ impl PeerRouter {
         for peer_id in peer_ids {
             routes.entry(peer_id.clone()).or_default().insert(session_id);
         }
+        tracing::info!(
+            session_id = %session_id,
+            peer_count = peer_ids.len(),
+            "routing added for debug session"
+        );
     }
 
     /// Remove a debug session's interest. Cleans up peers with no remaining sessions.
@@ -34,6 +39,7 @@ impl PeerRouter {
             sessions.remove(&session_id);
             !sessions.is_empty()
         });
+        tracing::info!(session_id = %session_id, "routing removed for debug session");
     }
 
     /// Get the routing decision for a peer.
