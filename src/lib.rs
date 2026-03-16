@@ -1,5 +1,6 @@
 pub mod api;
 pub mod blokli;
+pub mod cleanup;
 pub mod config;
 pub mod db;
 pub mod identity;
