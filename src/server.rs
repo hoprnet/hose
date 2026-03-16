@@ -3,7 +3,9 @@ use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
+use crate::blokli::BlokliClient;
 use crate::config::Config;
+use crate::identity::IdentityBridge;
 use crate::peer_router::PeerRouter;
 use crate::peer_tracker::PeerTracker;
 use crate::session_tracker::SessionTracker;
@@ -16,6 +18,8 @@ pub struct AppState {
     pub peer_router: PeerRouter,
     pub peer_tracker: PeerTracker,
     pub session_tracker: SessionTracker,
+    pub identity_bridge: IdentityBridge,
+    pub blokli_client: Option<BlokliClient>,
     /// Broadcast channel for SSE live events.
     pub event_tx: broadcast::Sender<Event>,
 }
@@ -37,6 +41,8 @@ impl AppState {
         peer_router: PeerRouter,
         peer_tracker: PeerTracker,
         session_tracker: SessionTracker,
+        identity_bridge: IdentityBridge,
+        blokli_client: Option<BlokliClient>,
     ) -> Self {
         let (event_tx, _) = broadcast::channel(1024);
         Self {
@@ -45,6 +51,8 @@ impl AppState {
             peer_router,
             peer_tracker,
             session_tracker,
+            identity_bridge,
+            blokli_client,
             event_tx,
         }
     }
@@ -73,6 +81,10 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/debug-sessions/:id/end",
             axum::routing::post(crate::api::debug_sessions::end_session),
+        )
+        .route(
+            "/api/peers/:peer_id/channels",
+            axum::routing::get(crate::api::channels::get_peer_channels),
         )
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http())
