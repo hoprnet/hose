@@ -66,6 +66,19 @@ impl AppState {
 /// Build the Axum router with all routes and middleware.
 pub fn build_router(state: AppState) -> Router {
     Router::new()
+        // Server-rendered HTML pages
+        .route("/", axum::routing::get(crate::pages::dashboard))
+        .route("/peers", axum::routing::get(crate::pages::peers))
+        .route("/sessions", axum::routing::get(crate::pages::sessions))
+        .route(
+            "/debug-sessions",
+            axum::routing::get(crate::pages::debug_sessions),
+        )
+        .route(
+            "/debug-sessions/:id",
+            axum::routing::get(crate::pages::debug_session_detail),
+        )
+        // JSON API routes
         .route("/health", axum::routing::get(health_check))
         .route("/api/peers", axum::routing::get(crate::api::peers::list_peers))
         .route("/api/sessions", axum::routing::get(crate::api::sessions::list_sessions))

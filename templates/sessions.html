@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions - HOSE{% endblock %}
+
+{% block content %}
+<h1>HOPR Sessions</h1>
+<div class="card">
+    {% if sessions.is_empty() %}
+    <div class="empty">No sessions have been observed yet.</div>
+    {% else %}
+    <table>
+        <thead>
+            <tr>
+                <th>Session ID</th>
+                <th>Protocol</th>
+                <th>Hops</th>
+                <th>Participants</th>
+                <th>First Seen</th>
+                <th>Last Seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr>
+                <td><code>{{ session.session_id }}</code></td>
+                <td>{{ session.protocol }}</td>
+                <td>{{ session.hop_count }}</td>
+                <td>{{ session.participants.len() }}</td>
+                <td>{{ session.first_seen }}</td>
+                <td>{{ session.last_seen }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

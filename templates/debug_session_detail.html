@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}{{ session.name }} - HOSE{% endblock %}
+
+{% block content %}
+<h1>{{ session.name }}</h1>
+<div class="card">
+    <p>
+        <strong>ID:</strong> <code>{{ session.id }}</code>
+    </p>
+    <p>
+        <strong>Status:</strong>
+        {% match session.status %}
+            {% when DebugSessionStatus::Active %}
+                <span class="badge badge-active">Active</span>
+            {% when DebugSessionStatus::Completed %}
+                <span class="badge badge-completed">Completed</span>
+        {% endmatch %}
+    </p>
+    <p><strong>Created:</strong> {{ session.created_at }}</p>
+    <p>
+        <strong>Ended:</strong>
+        {% match session.ended_at %}
+            {% when Some with (ts) %}
+                {{ ts }}
+            {% when None %}
+                &mdash;
+        {% endmatch %}
+    </p>
+    <p>
+        <strong>Peers:</strong>
+        <span class="peer-list">
+            {% for peer_id in session.peer_ids %}
+            <span class="peer-tag">{{ peer_id }}</span>
+            {% endfor %}
+        </span>
+    </p>
+</div>
+
+<div class="telemetry-section">
+    <h2>Spans ({{ span_count }})</h2>
+    <div class="card">
+        {% if spans.is_empty() %}
+        <div class="empty">No spans captured.</div>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Operation</th>
+                    <th>Peer</th>
+                    <th>Trace ID</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for span in spans %}
+                <tr>
+                    <td>{% match span.operation_name %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+                    <td><code>{{ span.peer_id }}</code></td>
+                    <td><code>{% match span.trace_id %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</code></td>
+                    <td>{{ span.start_time }}</td>
+                    <td>{% match span.end_time %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<div class="telemetry-section">
+    <h2>Metrics ({{ metric_count }})</h2>
+    <div class="card">
+        {% if metrics.is_empty() %}
+        <div class="empty">No metrics captured.</div>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                    <th>Unit</th>
+                    <th>Peer</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for metric in metrics %}
+                <tr>
+                    <td>{{ metric.metric_name }}</td>
+                    <td>{% match metric.value %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+                    <td>{% match metric.unit %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+                    <td><code>{{ metric.peer_id }}</code></td>
+                    <td>{{ metric.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<div class="telemetry-section">
+    <h2>Logs ({{ log_count }})</h2>
+    <div class="card">
+        {% if logs.is_empty() %}
+        <div class="empty">No logs captured.</div>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Body</th>
+                    <th>Peer</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{% match log.severity %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+                    <td>{% match log.body %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+                    <td><code>{{ log.peer_id }}</code></td>
+                    <td>{{ log.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
