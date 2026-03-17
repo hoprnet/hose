@@ -1,30 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}HOSE{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/hose.css">
     <script type="importmap">
-    {
+      {
         "imports": {
-            "rescript/lib/es6/": "/static/js/rescript/"
+          "rescript/lib/es6/": "/static/js/rescript/"
         }
-    }
+      }
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <nav>
-        <a href="/" class="brand">HOSE</a>
-        <a href="/">Dashboard</a>
-        <a href="/peers">Peers</a>
-        <a href="/sessions">Sessions</a>
-        <a href="/debug-sessions">Debug Sessions</a>
-        <a href="/inspector">Inspector</a>
+      <a href="/" class="brand">HOSE</a>
+      <a href="/">Dashboard</a>
+      <a href="/peers">Peers</a>
+      <a href="/sessions">Sessions</a>
+      <a href="/debug-sessions">Debug Sessions</a>
+      <a href="/inspector">Inspector</a>
     </nav>
     <div class="page">
-        {% block content %}{% endblock %}
+      {% block content %}{% endblock %}
     </div>
     {% block scripts %}{% endblock %}
-</body>
+  </body>
 </html>

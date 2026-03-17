@@ -15,6 +15,8 @@
     pkg-config
     openssl
     sqlite
+    treefmt
+    deno
   ];
 
   # Environment variables
@@ -25,7 +27,7 @@
 
   # Pre-commit hooks
   pre-commit.hooks = {
-    rustfmt.enable = true;
+    treefmt.enable = true;
     clippy.enable = true;
   };
 

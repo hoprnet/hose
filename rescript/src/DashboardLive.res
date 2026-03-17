@@ -39,10 +39,14 @@ let updateCounter = (apiUrl: string, counterAttr: string) => {
     }
     Js.Promise.resolve()
   }, _)
-  ->Js.Promise.catch(_err => {
+  ->Js.Promise.catch(
+    _err => {
+      Js.Promise.resolve()
+    },
     // Silently ignore fetch errors; counters will update on next event
-    Js.Promise.resolve()
-  }, _)
+
+    _,
+  )
   ->ignore
 }
 
@@ -54,9 +58,5 @@ let () = {
     },
   })
 
-  let _source = SseClient.connect(
-    ~onOpen=() => (),
-    ~onError=() => (),
-    ~onEvent=handlers,
-  )
+  let _source = SseClient.connect(~onOpen=() => (), ~onError=() => (), ~onEvent=handlers)
 }
