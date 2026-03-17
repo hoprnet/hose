@@ -6,6 +6,7 @@ use hose::proto::trace::{ResourceSpans, ScopeSpans, Span};
 use hose::proto::trace_service::ExportTraceServiceRequest;
 use hose::proto::trace_service::trace_service_server::TraceService;
 use hose::receiver::trace::TraceReceiver;
+use hose::server::Event;
 use hose::session_tracker::SessionTracker;
 use hose::write_buffer::spawn_write_buffer;
 
@@ -147,6 +148,7 @@ async fn make_receiver() -> (TraceReceiver, SqlitePool) {
         peer_router,
         write_buffer,
         event_tx,
+        last_trace_sample: std::sync::Arc::new(std::sync::Mutex::new(None)),
     };
 
     (receiver, pool)
@@ -425,4 +427,69 @@ async fn export_returns_success_response() {
 
     // The response should have no partial_success (all data accepted)
     assert!(resp.into_inner().partial_success.is_none());
+}
+
+// ---------------------------------------------------------------------------
+// TraceSampled event tests
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn trace_export_emits_trace_sampled_event() {
+    let (receiver, _pool) = make_receiver().await;
+
+    // Subscribe before sending so we catch the event
+    let mut rx = receiver.event_tx.subscribe();
+
+    let peer_id = "16Uiu2HAmSample1";
+    let req = Request::new(trace_request_for_peer(peer_id, "hopr.relay.forward"));
+    receiver.export(req).await.unwrap();
+
+    let event = rx.try_recv().expect("should receive PeerSeen event");
+    assert!(matches!(event, Event::PeerSeen { .. }));
+
+    let event = rx.try_recv().expect("should receive TraceSampled event");
+    match event {
+        Event::TraceSampled {
+            peer_id: pid,
+            span_name,
+            routing_decision,
+            trace_id,
+            span_id,
+            ..
+        } => {
+            assert_eq!(pid, "16Uiu2HAmSample1");
+            assert_eq!(span_name, "hopr.relay.forward");
+            assert_eq!(routing_decision, "discard");
+            assert!(!trace_id.is_empty());
+            assert!(!span_id.is_empty());
+        }
+        other => panic!("expected TraceSampled, got {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn two_rapid_traces_produce_only_one_trace_sampled() {
+    let (receiver, _pool) = make_receiver().await;
+
+    let mut rx = receiver.event_tx.subscribe();
+
+    // Send two trace exports rapidly
+    let req1 = Request::new(trace_request_for_peer("16Uiu2HAmRapid1", "span.a"));
+    receiver.export(req1).await.unwrap();
+
+    let req2 = Request::new(trace_request_for_peer("16Uiu2HAmRapid2", "span.b"));
+    receiver.export(req2).await.unwrap();
+
+    // Drain all events from the channel
+    let mut trace_sampled_count = 0;
+    while let Ok(event) = rx.try_recv() {
+        if matches!(event, Event::TraceSampled { .. }) {
+            trace_sampled_count += 1;
+        }
+    }
+
+    assert_eq!(
+        trace_sampled_count, 1,
+        "rate limiter should allow only one TraceSampled per second"
+    );
 }

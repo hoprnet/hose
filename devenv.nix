@@ -27,6 +27,18 @@
 
   # Scripts available in the devshell
   scripts = {
+    hose-dev.exec = ''
+      echo "Starting HOSE dev server (HTTP :8080, gRPC :4317)..."
+      export RUST_LOG=''${RUST_LOG:-info,hose=debug}
+      cargo run
+    '';
+    hose-dev.description = "Build and run HOSE with sensible dev defaults";
+
+    hose-gen.exec = ''
+      echo "Starting OTLP trace generator → localhost:4317..."
+      cargo run --example trace_generator -- "$@"
+    '';
+    hose-gen.description = "Send synthetic OTLP traces to the local HOSE instance";
   };
 
   # Shell initialization

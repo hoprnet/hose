@@ -48,5 +48,8 @@ thiserror = "2"
 # HTML templating (server-rendered pages)
 askama = "0.13"
 
+[dev-dependencies]
+rand = "0.8"
+
 [build-dependencies]
 tonic-build = "0.12"

@@ -21,6 +21,7 @@ pub async fn event_stream(
                     Event::SessionObserved { .. } => "session_observed",
                     Event::DebugSessionUpdated { .. } => "debug_session_updated",
                     Event::TelemetryRate { .. } => "telemetry_rate",
+                    Event::TraceSampled { .. } => "trace_sampled",
                 };
                 Some(Ok(SseEvent::default().event(event_type).data(json)))
             }

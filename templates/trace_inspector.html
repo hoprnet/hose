@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Trace Inspector - HOSE{% endblock %}
+
+{% block content %}
+<h1>Trace Inspector</h1>
+<p style="color:#666; margin-bottom:1rem;">Live sampled traces (~1/sec). Newest first, max 100 rows.</p>
+
+<div class="card">
+    <div id="status" style="margin-bottom:0.75rem; font-size:0.85rem; color:#999;">Connecting...</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Peer ID</th>
+                <th>Span Name</th>
+                <th>Trace ID</th>
+                <th>Decision</th>
+                <th>Attributes</th>
+            </tr>
+        </thead>
+        <tbody id="trace-body"></tbody>
+    </table>
+    <div id="empty-state" class="empty">Waiting for traces...</div>
+</div>
+
+<script>
+(function() {
+    const MAX_ROWS = 100;
+    const tbody = document.getElementById('trace-body');
+    const status = document.getElementById('status');
+    const empty = document.getElementById('empty-state');
+
+    const source = new EventSource('/api/events');
+
+    source.addEventListener('open', function() {
+        status.textContent = 'Connected — listening for traces';
+        status.style.color = '#155724';
+    });
+
+    source.addEventListener('error', function() {
+        status.textContent = 'Disconnected — reconnecting...';
+        status.style.color = '#721c24';
+    });
+
+    source.addEventListener('trace_sampled', function(e) {
+        const data = JSON.parse(e.data);
+        empty.style.display = 'none';
+
+        const row = document.createElement('tr');
+
+        // Timestamp (HH:MM:SS)
+        const ts = new Date(data.timestamp);
+        const timeStr = ts.toLocaleTimeString();
+
+        // Truncated trace ID (first 16 chars)
+        const shortTrace = data.trace_id.length > 16
+            ? data.trace_id.substring(0, 16) + '...'
+            : data.trace_id;
+
+        // Decision badge
+        const badgeClass = data.routing_decision === 'retain'
+            ? 'badge badge-active'
+            : 'badge badge-completed';
+
+        // Attributes as compact key=value pairs
+        let attrStr = '';
+        if (data.attributes && typeof data.attributes === 'object') {
+            attrStr = Object.entries(data.attributes)
+                .map(function(kv) { return kv[0] + '=' + kv[1]; })
+                .join(', ');
+        }
+
+        row.innerHTML =
+            '<td>' + timeStr + '</td>' +
+            '<td><span class="peer-tag">' + escapeHtml(data.peer_id) + '</span></td>' +
+            '<td>' + escapeHtml(data.span_name) + '</td>' +
+            '<td style="font-family:monospace;font-size:0.8rem">' + escapeHtml(shortTrace) + '</td>' +
+            '<td><span class="' + badgeClass + '">' + escapeHtml(data.routing_decision) + '</span></td>' +
+            '<td style="font-size:0.8rem;color:#666">' + escapeHtml(attrStr || '—') + '</td>';
+
+        tbody.insertBefore(row, tbody.firstChild);
+
+        // Cap at MAX_ROWS
+        while (tbody.children.length > MAX_ROWS) {
+            tbody.removeChild(tbody.lastChild);
+        }
+    });
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text));
+        return div.innerHTML;
+    }
+})();
+</script>
+{% endblock %}

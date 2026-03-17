@@ -28,10 +28,28 @@ pub struct AppState {
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
-    PeerSeen { peer_id: String },
-    SessionObserved { session_id: String },
-    DebugSessionUpdated { session_id: String },
-    TelemetryRate { records_per_second: f64 },
+    PeerSeen {
+        peer_id: String,
+    },
+    SessionObserved {
+        session_id: String,
+    },
+    DebugSessionUpdated {
+        session_id: String,
+    },
+    TelemetryRate {
+        records_per_second: f64,
+    },
+    /// A sampled trace snapshot for the live trace inspector.
+    TraceSampled {
+        timestamp: String,
+        peer_id: String,
+        span_name: String,
+        trace_id: String,
+        span_id: String,
+        routing_decision: String,
+        attributes: serde_json::Value,
+    },
 }
 
 impl AppState {
@@ -78,6 +96,10 @@ pub fn build_router(state: AppState) -> Router {
             "/debug-sessions/{id}",
             axum::routing::get(crate::pages::debug_session_detail),
         )
+        .route(
+            "/inspector",
+            axum::routing::get(crate::pages::trace_inspector),
+        )
         // JSON API routes
         .route("/health", axum::routing::get(health_check))
         .route(
@@ -104,6 +126,11 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/peers/{peer_id}/channels",
             axum::routing::get(crate::api::channels::get_peer_channels),
+        )
+        // SSE live event stream
+        .route(
+            "/api/events",
+            axum::routing::get(crate::api::events::event_stream),
         )
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http())

@@ -91,6 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         peer_router: peer_router.clone(),
         write_buffer: write_buffer.clone(),
         event_tx: event_tx.clone(),
+        last_trace_sample: std::sync::Arc::new(std::sync::Mutex::new(None)),
     };
 
     let metrics_receiver = MetricsReceiver {

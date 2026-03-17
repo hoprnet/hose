@@ -306,6 +306,57 @@ async fn end_already_completed_session_returns_404() {
 }
 
 // ---------------------------------------------------------------------------
+// Test: Trace inspector page returns 200
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn inspector_page_returns_200() {
+    let (base_url, _state) = spawn_test_server().await;
+    let client = Client::new();
+
+    let resp = client
+        .get(format!("{}/inspector", base_url))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), 200, "inspector page should return 200");
+    let body = resp.text().await.unwrap();
+    assert!(
+        body.contains("Trace Inspector"),
+        "inspector page should contain the title"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Test: SSE events endpoint returns correct content type
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn events_endpoint_returns_sse_content_type() {
+    let (base_url, _state) = spawn_test_server().await;
+    let client = Client::new();
+
+    let resp = client
+        .get(format!("{}/api/events", base_url))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), 200);
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .expect("should have content-type header")
+        .to_str()
+        .unwrap();
+    assert!(
+        content_type.contains("text/event-stream"),
+        "SSE endpoint should return text/event-stream, got: {content_type}"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Test 6: GET /api/peers returns empty list initially
 // ---------------------------------------------------------------------------
 

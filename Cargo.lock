@@ -818,6 +818,7 @@ dependencies = [
  "opentelemetry-proto",
  "prost",
  "prost-types",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",

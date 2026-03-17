@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tonic::{Request, Response, Status};
 
 use crate::peer_router::PeerRouter;
@@ -10,6 +12,9 @@ use crate::types::{RoutingDecision, SessionParticipant, SessionRole};
 use crate::write_buffer::{RecordType, WriteBufferSender, WriteRecord};
 use tokio::sync::broadcast;
 
+/// Rate limiter cooldown for trace sampling (1 event per second).
+const TRACE_SAMPLE_COOLDOWN: Duration = Duration::from_secs(1);
+
 /// gRPC service implementing the OTLP TraceService collector.
 #[derive(Debug, Clone)]
 pub struct TraceReceiver {
@@ -18,6 +23,26 @@ pub struct TraceReceiver {
     pub peer_router: PeerRouter,
     pub write_buffer: WriteBufferSender,
     pub event_tx: broadcast::Sender<Event>,
+    /// Timestamp of the last emitted `TraceSampled` event for rate limiting.
+    pub last_trace_sample: Arc<Mutex<Option<Instant>>>,
+}
+
+impl TraceReceiver {
+    /// Returns `true` if enough time has elapsed since the last sample to emit another.
+    pub fn should_sample_trace(&self) -> bool {
+        let mut last = self.last_trace_sample.lock().unwrap();
+        match *last {
+            None => {
+                *last = Some(Instant::now());
+                true
+            }
+            Some(prev) if prev.elapsed() >= TRACE_SAMPLE_COOLDOWN => {
+                *last = Some(Instant::now());
+                true
+            }
+            Some(_) => false,
+        }
+    }
 }
 
 #[tonic::async_trait]
@@ -113,7 +138,46 @@ impl TraceService for TraceReceiver {
                     }
 
                     // Check routing decision
-                    match self.peer_router.route(&peer_id).await {
+                    let decision = self.peer_router.route(&peer_id).await;
+                    let decision_label = match &decision {
+                        RoutingDecision::Discard => "discard",
+                        RoutingDecision::Retain { .. } => "retain",
+                    };
+
+                    // Emit a sampled trace event for the live inspector (rate-limited).
+                    if self.should_sample_trace() {
+                        let attributes = serde_json::json!(
+                            span.attributes
+                                .iter()
+                                .filter_map(|a| {
+                                    a.value.as_ref().and_then(|v| v.value.as_ref()).map(|val| {
+                                        let v = match val {
+                                            crate::proto::common::any_value::Value::StringValue(
+                                                s,
+                                            ) => serde_json::Value::String(s.clone()),
+                                            crate::proto::common::any_value::Value::IntValue(i) => {
+                                                serde_json::json!(i)
+                                            }
+                                            _ => serde_json::Value::Null,
+                                        };
+                                        (a.key.clone(), v)
+                                    })
+                                })
+                                .collect::<serde_json::Map<String, serde_json::Value>>()
+                        );
+
+                        let _ = self.event_tx.send(Event::TraceSampled {
+                            timestamp: chrono::Utc::now().to_rfc3339(),
+                            peer_id: peer_id.clone(),
+                            span_name: span.name.clone(),
+                            trace_id: hex::encode(&span.trace_id),
+                            span_id: hex::encode(&span.span_id),
+                            routing_decision: decision_label.to_string(),
+                            attributes,
+                        });
+                    }
+
+                    match decision {
                         RoutingDecision::Discard => {
                             tracing::debug!(peer_id = %peer_id, "trace span discarded by routing");
                         }
@@ -180,4 +244,64 @@ fn extract_int_attr(attrs: &[crate::proto::common::KeyValue], key: &str) -> Opti
             None
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test the rate limiter directly without constructing a full TraceReceiver.
+    /// The rate limiter logic only depends on `Arc<Mutex<Option<Instant>>>`.
+    fn make_rate_limiter() -> Arc<Mutex<Option<Instant>>> {
+        Arc::new(Mutex::new(None))
+    }
+
+    /// Replicate the rate limiter check logic for isolated unit testing.
+    fn should_sample(last: &Arc<Mutex<Option<Instant>>>) -> bool {
+        let mut guard = last.lock().unwrap();
+        match *guard {
+            None => {
+                *guard = Some(Instant::now());
+                true
+            }
+            Some(prev) if prev.elapsed() >= TRACE_SAMPLE_COOLDOWN => {
+                *guard = Some(Instant::now());
+                true
+            }
+            Some(_) => false,
+        }
+    }
+
+    #[test]
+    fn rate_limiter_returns_true_on_first_call() {
+        let limiter = make_rate_limiter();
+        assert!(should_sample(&limiter), "first call should return true");
+    }
+
+    #[test]
+    fn rate_limiter_returns_false_within_cooldown() {
+        let limiter = make_rate_limiter();
+        assert!(should_sample(&limiter));
+        assert!(
+            !should_sample(&limiter),
+            "immediate second call should return false"
+        );
+    }
+
+    #[test]
+    fn rate_limiter_returns_true_after_cooldown() {
+        let limiter = make_rate_limiter();
+        assert!(should_sample(&limiter));
+
+        // Manually set the last sample to >1s ago
+        {
+            let mut guard = limiter.lock().unwrap();
+            *guard = Some(Instant::now() - Duration::from_secs(2));
+        }
+
+        assert!(
+            should_sample(&limiter),
+            "should return true after cooldown has elapsed"
+        );
+    }
 }

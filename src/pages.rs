@@ -99,6 +99,19 @@ pub async fn debug_sessions(State(state): State<AppState>) -> Response {
 }
 
 // ---------------------------------------------------------------------------
+// Trace Inspector
+// ---------------------------------------------------------------------------
+
+#[derive(Template)]
+#[template(path = "trace_inspector.html")]
+struct TraceInspectorTemplate {}
+
+/// GET /inspector - Live trace inspector page.
+pub async fn trace_inspector() -> Response {
+    render_template(&TraceInspectorTemplate {})
+}
+
+// ---------------------------------------------------------------------------
 // Debug Session Detail
 // ---------------------------------------------------------------------------
 
