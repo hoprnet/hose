@@ -7,7 +7,7 @@ includes = ["*.rs"]
 command = "deno"
 options = ["fmt"]
 includes = ["*.html", "*.css", "*.md", "*.json"]
-excludes = ["static/js/**", "node_modules/**", "lib/**"]
+excludes = ["static/js/**", "node_modules/**", "lib/**", ".beads/**"]
 
 [formatter.rescript]
 command = "npx"
