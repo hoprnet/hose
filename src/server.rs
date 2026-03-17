@@ -75,7 +75,7 @@ pub fn build_router(state: AppState) -> Router {
             axum::routing::get(crate::pages::debug_sessions),
         )
         .route(
-            "/debug-sessions/:id",
+            "/debug-sessions/{id}",
             axum::routing::get(crate::pages::debug_session_detail),
         )
         // JSON API routes
@@ -94,15 +94,15 @@ pub fn build_router(state: AppState) -> Router {
                 .get(crate::api::debug_sessions::list_sessions),
         )
         .route(
-            "/api/debug-sessions/:id",
+            "/api/debug-sessions/{id}",
             axum::routing::get(crate::api::debug_sessions::get_session),
         )
         .route(
-            "/api/debug-sessions/:id/end",
+            "/api/debug-sessions/{id}/end",
             axum::routing::post(crate::api::debug_sessions::end_session),
         )
         .route(
-            "/api/peers/:peer_id/channels",
+            "/api/peers/{peer_id}/channels",
             axum::routing::get(crate::api::channels::get_peer_channels),
         )
         .with_state(state)
