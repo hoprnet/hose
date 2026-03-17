@@ -27,3 +27,4 @@ target
 # direnv
 .direnv/
 
+hose.db
