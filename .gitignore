@@ -28,3 +28,9 @@ target
 .direnv/
 
 hose.db
+
+# Node.js / ReScript
+node_modules/
+lib/
+static/js/*.mjs
+static/js/rescript/

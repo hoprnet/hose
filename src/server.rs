@@ -2,6 +2,7 @@ use axum::Router;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::sync::broadcast;
+use tower_http::services::ServeDir;
 
 use crate::blokli::BlokliClient;
 use crate::config::Config;
@@ -132,6 +133,8 @@ pub fn build_router(state: AppState) -> Router {
             "/api/events",
             axum::routing::get(crate::api::events::event_stream),
         )
+        // Static file serving (CSS, JS)
+        .nest_service("/static", ServeDir::new("static"))
         .with_state(state)
         .layer(tower_http::trace::TraceLayer::new_for_http())
 }

@@ -357,6 +357,29 @@ async fn events_endpoint_returns_sse_content_type() {
 }
 
 // ---------------------------------------------------------------------------
+// Test: Static file serving returns CSS
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn static_css_returns_200() {
+    let (base_url, _state) = spawn_test_server().await;
+    let client = Client::new();
+
+    let resp = client
+        .get(format!("{}/static/css/hose.css", base_url))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), 200, "static CSS file should return 200");
+    let body = resp.text().await.unwrap();
+    assert!(
+        body.contains("HOSE Design System"),
+        "CSS file should contain design system comment"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Test 6: GET /api/peers returns empty list initially
 // ---------------------------------------------------------------------------
 

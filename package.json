@@ -1,0 +1,12 @@
+{
+  "name": "hose-rescript",
+  "private": true,
+  "scripts": {
+    "res:build": "rescript build",
+    "res:watch": "rescript build -w",
+    "res:clean": "rescript clean"
+  },
+  "dependencies": {
+    "rescript": "11.1.0"
+  }
+}

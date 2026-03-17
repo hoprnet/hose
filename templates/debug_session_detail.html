@@ -4,7 +4,7 @@
 
 {% block content %}
 <h1>{{ session.name }}</h1>
-<div class="card">
+<div class="section detail-meta">
     <p>
         <strong>ID:</strong> <code>{{ session.id }}</code>
     </p>
@@ -39,7 +39,7 @@
 
 <div class="telemetry-section">
     <h2>Spans ({{ span_count }})</h2>
-    <div class="card">
+    <div class="section">
         {% if spans.is_empty() %}
         <div class="empty">No spans captured.</div>
         {% else %}
@@ -71,7 +71,7 @@
 
 <div class="telemetry-section">
     <h2>Metrics ({{ metric_count }})</h2>
-    <div class="card">
+    <div class="section">
         {% if metrics.is_empty() %}
         <div class="empty">No metrics captured.</div>
         {% else %}
@@ -103,7 +103,7 @@
 
 <div class="telemetry-section">
     <h2>Logs ({{ log_count }})</h2>
-    <div class="card">
+    <div class="section">
         {% if logs.is_empty() %}
         <div class="empty">No logs captured.</div>
         {% else %}
