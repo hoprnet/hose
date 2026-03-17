@@ -1,49 +1,39 @@
-{% extends "base.html" %}
-
-{% block title %}Debug Sessions - HOSE{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Debug Sessions - HOSE{% endblock %} {% block content %}
 <h1>Debug Sessions</h1>
 <div class="section">
-    {% if sessions.is_empty() %}
-    <div class="empty">No debug sessions have been created yet.</div>
-    {% else %}
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Peers</th>
-                <th>Created</th>
-                <th>Ended</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for session in sessions %}
-            <tr>
-                <td><a href="/debug-sessions/{{ session.id }}">{{ session.name }}</a></td>
-                <td>
-                    {% match session.status %}
-                        {% when DebugSessionStatus::Active %}
-                            <span class="badge badge-active">Active</span>
-                        {% when DebugSessionStatus::Completed %}
-                            <span class="badge badge-completed">Completed</span>
-                    {% endmatch %}
-                </td>
-                <td>{{ session.peer_ids.len() }}</td>
-                <td>{{ session.created_at }}</td>
-                <td>
-                    {% match session.ended_at %}
-                        {% when Some with (ts) %}
-                            {{ ts }}
-                        {% when None %}
-                            —
-                    {% endmatch %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
+  {% if sessions.is_empty() %}
+  <div class="empty">No debug sessions have been created yet.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Peers</th>
+        <th>Created</th>
+        <th>Ended</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for session in sessions %}
+      <tr>
+        <td><a href="/debug-sessions/{{ session.id }}">{{ session.name }}</a></td>
+        <td>
+          {% match session.status %} {% when DebugSessionStatus::Active %}
+          <span class="badge badge-active">Active</span>
+          {% when DebugSessionStatus::Completed %}
+          <span class="badge badge-completed">Completed</span>
+          {% endmatch %}
+        </td>
+        <td>{{ session.peer_ids.len() }}</td>
+        <td>{{ session.created_at }}</td>
+        <td>
+          {% match session.ended_at %} {% when Some with (ts) %} {{ ts }} {% when None %} — {% endmatch %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </div>
 {% endblock %}

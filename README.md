@@ -1,3 +1,3 @@
 # hose
-web-based HOPR session debugger
 
+web-based HOPR session debugger

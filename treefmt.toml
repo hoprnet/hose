@@ -1,0 +1,15 @@
+[formatter.rust]
+command = "cargo"
+options = ["fmt", "--"]
+includes = ["*.rs"]
+
+[formatter.deno]
+command = "deno"
+options = ["fmt"]
+includes = ["*.html", "*.css", "*.md", "*.json"]
+excludes = ["static/js/**", "node_modules/**", "lib/**"]
+
+[formatter.rescript]
+command = "npx"
+options = ["rescript", "format"]
+includes = ["*.res"]

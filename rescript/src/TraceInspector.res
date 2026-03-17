@@ -24,11 +24,7 @@ let () = {
   let status = DomUtil.getElementById(DomUtil.doc, "status")
   let empty = DomUtil.getElementById(DomUtil.doc, "empty-state")
 
-  switch (
-    Js.Nullable.toOption(tbody),
-    Js.Nullable.toOption(status),
-    Js.Nullable.toOption(empty),
-  ) {
+  switch (Js.Nullable.toOption(tbody), Js.Nullable.toOption(status), Js.Nullable.toOption(empty)) {
   | (Some(tbodyEl), Some(statusEl), Some(emptyEl)) =>
     let _source = SseClient.connect(
       ~onOpen=() => {
@@ -107,8 +103,7 @@ let () = {
               DomUtil.escapeHtml(trace.routing_decision) ++
               "</span></td>" ++
               "<td style=\"font-size:12px;color:#666\">" ++
-              DomUtil.escapeHtml(attrDisplay) ++
-              "</td>",
+              DomUtil.escapeHtml(attrDisplay) ++ "</td>",
             )
 
             DomUtil.insertBefore(tbodyEl, row, DomUtil.getFirstChild(tbodyEl))
