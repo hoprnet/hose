@@ -1,0 +1,74 @@
+# Default values for hose.
+
+replicaCount: 1
+
+image:
+  repository: hopr/hose
+  # Defaults to the chart appVersion if left empty
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Whether to create a ServiceAccount
+  create: true
+  # Annotations to add to the ServiceAccount
+  annotations: {}
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+service:
+  type: ClusterIP
+  httpPort: 8080
+  grpcPort: 4317
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: hose.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: hose-tls
+  #    hosts:
+  #      - hose.local
+
+persistence:
+  enabled: true
+  size: 1Gi
+  # Leave empty to use the cluster default StorageClass
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+
+# Application configuration — mapped to environment variables via ConfigMap
+config:
+  grpcListen: "0.0.0.0:4317"
+  httpListen: "0.0.0.0:8080"
+  databasePath: "/data/hose.db"
+  retentionHours: "24"
+  writeBufferSize: "1000"
+  writeBufferFlushSecs: "5"
+  # Optional: HOPR indexer GraphQL endpoint
+  indexerEndpoint: ""
+  rustLog: "info"
+
+resources: {}
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

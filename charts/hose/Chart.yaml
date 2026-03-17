@@ -1,0 +1,6 @@
+apiVersion: v2
+name: hose
+description: HOPR Session Explorer — OTLP telemetry receiver with web UI
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

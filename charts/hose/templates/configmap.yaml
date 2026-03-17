@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hose.fullname" . }}
+  labels:
+    {{- include "hose.labels" . | nindent 4 }}
+data:
+  HOSE_GRPC_LISTEN: {{ .Values.config.grpcListen | quote }}
+  HOSE_HTTP_LISTEN: {{ .Values.config.httpListen | quote }}
+  HOSE_DATABASE_PATH: {{ .Values.config.databasePath | quote }}
+  HOSE_RETENTION_HOURS: {{ .Values.config.retentionHours | quote }}
+  HOSE_WRITE_BUFFER_SIZE: {{ .Values.config.writeBufferSize | quote }}
+  HOSE_WRITE_BUFFER_FLUSH_SECS: {{ .Values.config.writeBufferFlushSecs | quote }}
+  {{- if .Values.config.indexerEndpoint }}
+  HOSE_INDEXER_ENDPOINT: {{ .Values.config.indexerEndpoint | quote }}
+  {{- end }}
+  RUST_LOG: {{ .Values.config.rustLog | quote }}
