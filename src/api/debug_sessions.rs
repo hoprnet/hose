@@ -4,7 +4,6 @@ use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::db::debug_sessions;
-use crate::peer_router::PeerRouter;
 use crate::server::{AppState, Event};
 use crate::types::DebugSession;
 
