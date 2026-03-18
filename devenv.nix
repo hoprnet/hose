@@ -1,29 +1,70 @@
-{ pkgs, ... }:
+{ pkgs, lib, config, inputs, ... }:
 
+let
+  isBuilding = config.container.isBuilding;
+
+  craneLib = inputs.crane.mkLib pkgs;
+
+  rescriptAssets = import ./nix/rescript.nix { inherit pkgs; };
+
+  hoseBuild = profile:
+    import ./nix/hose.nix {
+      inherit pkgs craneLib rescriptAssets;
+      inherit profile;
+    };
+
+  hoseRelease = hoseBuild "release";
+  hoseDev = hoseBuild "dev";
+
+  mkAppRoot = hosePkg:
+    pkgs.runCommand "hose-root" { } ''
+      mkdir -p $out/app $out/data $out/tmp
+      cp ${hosePkg}/bin/hose $out/app/
+      cp -r ${hosePkg}/share/hose/static $out/app/
+      cp -r ${hosePkg}/share/hose/migrations $out/app/
+      cp -r ${hosePkg}/share/hose/templates $out/app/
+    '';
+in
 {
-  # Rust toolchain
-  languages.rust.enable = true;
+  # Rust toolchain (only in dev shell, not when building containers)
+  languages.rust.enable = !isBuilding;
 
-  # Node.js (for ReScript build)
-  languages.javascript.enable = true;
+  # Node.js (only in dev shell)
+  languages.javascript.enable = !isBuilding;
   languages.javascript.package = pkgs.nodejs_22;
 
   # Project-specific packages
-  packages = with pkgs; [
-    beads
-    protobuf
-    pkg-config
-    openssl
-    sqlite
-    treefmt
-    deno
-  ];
+  packages =
+    if isBuilding then
+      [ pkgs.cacert ]
+    else
+      with pkgs; [
+        beads
+        protobuf
+        pkg-config
+        openssl
+        sqlite
+        treefmt
+        deno
+      ];
 
   # Environment variables
-  env = {
-    PROJECT_ROOT = builtins.toString ./.;
-    PROTOC = "${pkgs.protobuf}/bin/protoc";
-  };
+  env =
+    if isBuilding then
+      {
+        HOSE_GRPC_LISTEN = "0.0.0.0:4317";
+        HOSE_HTTP_LISTEN = "0.0.0.0:8080";
+        HOSE_DATABASE_PATH = "/data/hose.db";
+        HOSE_RETENTION_HOURS = "24";
+        HOSE_WRITE_BUFFER_SIZE = "1000";
+        HOSE_WRITE_BUFFER_FLUSH_SECS = "5";
+        RUST_LOG = "info";
+      }
+    else
+      {
+        PROJECT_ROOT = builtins.toString ./.;
+        PROTOC = "${pkgs.protobuf}/bin/protoc";
+      };
 
   # Pre-commit hooks
   pre-commit.hooks = {
@@ -100,4 +141,17 @@
     echo "Node $(node --version)"
     echo "Beads (bd) is available for task tracking"
   '';
+
+  # Container definitions
+  containers."hose" = {
+    name = "hopr/hose";
+    copyToRoot = mkAppRoot hoseRelease;
+    startupCommand = "cd /app && exec ./hose";
+  };
+
+  containers."hose-dev" = {
+    name = "hopr/hose-dev";
+    copyToRoot = mkAppRoot hoseDev;
+    startupCommand = "cd /app && exec ./hose";
+  };
 }
