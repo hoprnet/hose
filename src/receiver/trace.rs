@@ -108,33 +108,32 @@ impl TraceService for TraceReceiver {
                         }
                     });
 
-                    if let Some(sid) = &session_id {
-                        if !sid.is_empty() {
-                            let protocol =
-                                extract_string_attr(&span.attributes, "hopr.session.protocol")
-                                    .unwrap_or_default();
-                            let hop_count = extract_int_attr(&span.attributes, "hopr.session.hops")
-                                .unwrap_or(0) as u32;
-                            let role_str =
-                                extract_string_attr(&span.attributes, "hopr.session.role")
-                                    .unwrap_or_default();
-                            let role = match role_str.as_str() {
-                                "entry" => SessionRole::Entry,
-                                "exit" => SessionRole::Exit,
-                                _ => SessionRole::Relay,
-                            };
+                    if let Some(sid) = &session_id
+                        && !sid.is_empty()
+                    {
+                        let protocol =
+                            extract_string_attr(&span.attributes, "hopr.session.protocol")
+                                .unwrap_or_default();
+                        let hop_count = extract_int_attr(&span.attributes, "hopr.session.hops")
+                            .unwrap_or(0) as u32;
+                        let role_str = extract_string_attr(&span.attributes, "hopr.session.role")
+                            .unwrap_or_default();
+                        let role = match role_str.as_str() {
+                            "entry" => SessionRole::Entry,
+                            "exit" => SessionRole::Exit,
+                            _ => SessionRole::Relay,
+                        };
 
-                            let participant = SessionParticipant {
-                                peer_id: peer_id.clone(),
-                                role,
-                            };
-                            self.session_tracker
-                                .update_session(sid, &protocol, hop_count, participant)
-                                .await;
-                            let _ = self.event_tx.send(Event::SessionObserved {
-                                session_id: sid.clone(),
-                            });
-                        }
+                        let participant = SessionParticipant {
+                            peer_id: peer_id.clone(),
+                            role,
+                        };
+                        self.session_tracker
+                            .update_session(sid, &protocol, hop_count, participant)
+                            .await;
+                        let _ = self.event_tx.send(Event::SessionObserved {
+                            session_id: sid.clone(),
+                        });
                     }
 
                     // Check routing decision

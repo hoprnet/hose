@@ -1,0 +1,30 @@
+# HOSE — HOPR Session Explorer
+# Configuration file (TOML format).
+#
+# All values are optional — unset values use built-in defaults.
+# Environment variables override config file values.
+# CLI parameters override both env vars and config file values.
+#
+# Load this file with: hose --config hose.toml
+#                  or:  HOSE_CONFIG=hose.toml hose
+
+# Blokli GraphQL indexer endpoint URL (optional, enables channel topology)
+# indexer_endpoint = "http://localhost:8000/graphql"
+
+# Socket address for the gRPC OTLP receiver
+# grpc_listen = "0.0.0.0:4317"
+
+# Socket address for the HTTP web server
+# http_listen = "0.0.0.0:8080"
+
+# Path to the SQLite database file
+# database_path = "hose.db"
+
+# Completed debug session data retention (hours)
+# retention_hours = 24
+
+# Maximum telemetry records buffered before flush
+# write_buffer_size = 1000
+
+# Maximum seconds between batch flushes
+# write_buffer_flush_secs = 5

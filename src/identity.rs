@@ -59,19 +59,19 @@ impl IdentityBridge {
 
         let response: AccountResponse = client.query(query, Some(variables)).await?;
 
-        if let Some(account) = response.account {
-            if let Some(peer_id) = account.peer_id {
-                // Update both caches
-                self.key_to_peer
-                    .write()
-                    .await
-                    .insert(key_id.to_string(), peer_id.clone());
-                self.peer_to_key
-                    .write()
-                    .await
-                    .insert(peer_id.clone(), key_id.to_string());
-                return Ok(Some(peer_id));
-            }
+        if let Some(account) = response.account
+            && let Some(peer_id) = account.peer_id
+        {
+            // Update both caches
+            self.key_to_peer
+                .write()
+                .await
+                .insert(key_id.to_string(), peer_id.clone());
+            self.peer_to_key
+                .write()
+                .await
+                .insert(peer_id.clone(), key_id.to_string());
+            return Ok(Some(peer_id));
         }
 
         Ok(None)

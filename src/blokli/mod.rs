@@ -74,11 +74,11 @@ impl BlokliClient {
             .json()
             .await?;
 
-        if let Some(errors) = response.errors {
-            if !errors.is_empty() {
-                let messages: Vec<String> = errors.into_iter().map(|e| e.message).collect();
-                return Err(BlokliError::GraphQL(messages.join("; ")));
-            }
+        if let Some(errors) = response.errors
+            && !errors.is_empty()
+        {
+            let messages: Vec<String> = errors.into_iter().map(|e| e.message).collect();
+            return Err(BlokliError::GraphQL(messages.join("; ")));
         }
 
         response

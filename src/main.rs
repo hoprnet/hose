@@ -26,8 +26,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )
         .init();
 
-    // Load configuration from environment variables.
-    let config = Config::from_env();
+    // Load configuration from config file, environment variables, and CLI parameters.
+    let config = Config::load()?;
     tracing::info!(?config, "loaded configuration");
 
     // Initialize the SQLite database pool and run migrations.
