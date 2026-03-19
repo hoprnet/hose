@@ -1,10 +1,8 @@
 {
   "fmt": {
     "include": ["**/*.html", "**/*.css", "**/*.md", "**/*.json"],
-    "options": {
-      "proseWrap": "preserve",
-      "indentWidth": 2,
-      "lineWidth": 120
-    }
+    "proseWrap": "preserve",
+    "indentWidth": 2,
+    "lineWidth": 120
   }
 }

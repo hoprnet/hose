@@ -142,7 +142,7 @@ in
     '';
     hose-gen.description = "Send synthetic OTLP traces to the local HOSE instance";
 
-    gha-update.exec = ''exec bash "$PROJECT_ROOT/scripts/gha-update.sh" "$@"'';
+    gha-update.exec = ''"$PROJECT_ROOT/scripts/gha-update.ts" "$@"'';
     gha-update.description = "Update GitHub Actions SHA pins to latest releases (dry-run by default, --apply to write)";
   };
 
