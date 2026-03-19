@@ -66,8 +66,8 @@ in
         PROTOC = "${pkgs.protobuf}/bin/protoc";
       };
 
-  # Pre-commit hooks
-  pre-commit.hooks = {
+  # Git hooks
+  git-hooks.hooks = {
     treefmt.enable = true;
     clippy.enable = true;
   };
