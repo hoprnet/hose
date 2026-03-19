@@ -1,4 +1,10 @@
-{ pkgs, lib, config, inputs, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
+}:
 
 let
   isBuilding = config.container.isBuilding;
@@ -7,7 +13,8 @@ let
 
   rescriptAssets = import ./nix/rescript.nix { inherit pkgs; };
 
-  hoseBuild = profile:
+  hoseBuild =
+    profile:
     import ./nix/hose.nix {
       inherit pkgs craneLib rescriptAssets;
       inherit profile;
@@ -16,7 +23,8 @@ let
   hoseRelease = hoseBuild "release";
   hoseDev = hoseBuild "dev";
 
-  mkAppRoot = hosePkg:
+  mkAppRoot =
+    hosePkg:
     pkgs.runCommand "hose-root" { } ''
       mkdir -p $out/app $out/data $out/tmp
       cp ${hosePkg}/bin/hose $out/app/
@@ -38,7 +46,8 @@ in
     if isBuilding then
       [ pkgs.cacert ]
     else
-      with pkgs; [
+      with pkgs;
+      [
         beads
         protobuf
         pkg-config
@@ -132,6 +141,9 @@ in
       cargo run --example trace_generator -- "$@"
     '';
     hose-gen.description = "Send synthetic OTLP traces to the local HOSE instance";
+
+    gha-update.exec = ''exec bash "$PROJECT_ROOT/scripts/gha-update.sh" "$@"'';
+    gha-update.description = "Update GitHub Actions SHA pins to latest releases (dry-run by default, --apply to write)";
   };
 
   # Shell initialization
@@ -154,4 +166,6 @@ in
     copyToRoot = mkAppRoot hoseDev;
     startupCommand = "cd /app && exec ./hose";
   };
+
+  cachix.pull = [ "hose" ];
 }
