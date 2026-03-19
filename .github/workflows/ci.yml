@@ -16,10 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
 
-      - name: Setup devenv cache
+      - name: Setup cachix cache
         uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
         with:
-          name: devenv
+          name: hose
 
       - name: Install devenv
         run: nix profile install --accept-flake-config github:cachix/devenv/latest
@@ -37,10 +37,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
 
-      - name: Setup devenv cache
+      - name: Setup cachix cache
         uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
         with:
-          name: devenv
+          name: hose
 
       - name: Install devenv
         run: nix profile install --accept-flake-config github:cachix/devenv/latest
@@ -55,10 +55,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
 
-      - name: Setup devenv cache
+      - name: Setup cachix cache
         uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
         with:
-          name: devenv
+          name: hose
 
       - name: Install devenv
         run: nix profile install --accept-flake-config github:cachix/devenv/latest
