@@ -16,17 +16,10 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: cachix/install-nix-action@v30
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
-          extra_nix_config: |
-            experimental-features = nix-command flakes
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
 
       - name: Setup devenv cache
-        uses: cachix/cachix-action@v15
+        uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
         with:
           name: devenv
 
