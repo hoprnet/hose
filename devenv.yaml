@@ -3,6 +3,9 @@ inputs:
     url: github:ipetkov/crane
   git-hooks:
     url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   mk-shell-bin:
     url: github:rrbutani/nix-mk-shell-bin
   nix2container:
