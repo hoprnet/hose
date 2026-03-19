@@ -26,7 +26,7 @@ jobs:
           name: hose
 
       - name: Install devenv
-        run: nix profile install --accept-flake-config github:cachix/devenv/latest
+        run: command -v devenv || nix profile install --accept-flake-config github:cachix/devenv/latest
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
