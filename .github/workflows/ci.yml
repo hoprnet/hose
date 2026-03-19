@@ -14,10 +14,10 @@ jobs:
     runs-on: self-hosted-hoprnet-bigger
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
 
       - name: Setup cachix cache
-        uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
+        uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
         with:
           name: hose
 
@@ -35,10 +35,10 @@ jobs:
     runs-on: self-hosted-hoprnet-bigger
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
 
       - name: Setup cachix cache
-        uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
+        uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
         with:
           name: hose
 
@@ -53,10 +53,10 @@ jobs:
     runs-on: self-hosted-hoprnet-bigger
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 from 13.11.2025
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
 
       - name: Setup cachix cache
-        uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15 from 20.05.2024
+        uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
         with:
           name: hose
 
