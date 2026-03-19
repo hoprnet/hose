@@ -18,6 +18,8 @@ jobs:
 
       - name: Setup cachix cache
         uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
+        env:
+          USER: runner
         with:
           name: hose
 
@@ -39,6 +41,8 @@ jobs:
 
       - name: Setup cachix cache
         uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
+        env:
+          USER: runner
         with:
           name: hose
 
@@ -57,6 +61,8 @@ jobs:
 
       - name: Setup cachix cache
         uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
+        env:
+          USER: runner
         with:
           name: hose
 
