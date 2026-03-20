@@ -1,6 +1,9 @@
-{% extends "base.html" %} {% block title %}Trace Inspector - HOSE{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Trace Inspector - HOSE{% endblock %}
+{% block content %}
 <h1>Trace Inspector</h1>
-<p class="subtitle">Live sampled traces (~1/sec). Newest first, max 100 rows.</p>
+<p class="subtitle">
+  Live sampled traces (~1/sec). Newest first, max 100 rows.
+</p>
 
 <div class="section">
   <div id="status" class="sse-status">Connecting...</div>

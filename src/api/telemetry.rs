@@ -1,10 +1,14 @@
-use axum::Json;
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
+};
 use serde::Deserialize;
 
-use crate::db::telemetry::{self, LogRow, MetricRow, PaginatedResult, PaginationParams, SpanRow};
-use crate::server::AppState;
+use crate::{
+    db::telemetry::{self, LogRow, MetricRow, PaginatedResult, PaginationParams, SpanRow},
+    server::AppState,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct PaginationQuery {

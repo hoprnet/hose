@@ -1,15 +1,14 @@
-use axum::Router;
-use sqlx::SqlitePool;
 use std::sync::Arc;
-use tokio::sync::broadcast;
-use tower_http::services::ServeDir;
 
-use crate::blokli::BlokliClient;
-use crate::config::Config;
-use crate::identity::IdentityBridge;
-use crate::peer_router::PeerRouter;
-use crate::peer_tracker::PeerTracker;
-use crate::session_tracker::SessionTracker;
+use axum::{Router, routing};
+use sqlx::SqlitePool;
+use tokio::{net::TcpListener, sync::broadcast};
+use tower_http::{services::ServeDir, trace::TraceLayer};
+
+use crate::{
+    blokli::BlokliClient, config::Config, identity::IdentityBridge, peer_router::PeerRouter, peer_tracker::PeerTracker,
+    session_tracker::SessionTracker,
+};
 
 /// Shared application state accessible from all HTTP handlers.
 #[derive(Debug, Clone)]
@@ -86,57 +85,38 @@ impl AppState {
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         // Server-rendered HTML pages
-        .route("/", axum::routing::get(crate::pages::dashboard))
-        .route("/peers", axum::routing::get(crate::pages::peers))
-        .route("/sessions", axum::routing::get(crate::pages::sessions))
-        .route(
-            "/debug-sessions",
-            axum::routing::get(crate::pages::debug_sessions),
-        )
-        .route(
-            "/debug-sessions/{id}",
-            axum::routing::get(crate::pages::debug_session_detail),
-        )
-        .route(
-            "/inspector",
-            axum::routing::get(crate::pages::trace_inspector),
-        )
+        .route("/", routing::get(crate::pages::dashboard))
+        .route("/peers", routing::get(crate::pages::peers))
+        .route("/sessions", routing::get(crate::pages::sessions))
+        .route("/debug-sessions", routing::get(crate::pages::debug_sessions))
+        .route("/debug-sessions/{id}", routing::get(crate::pages::debug_session_detail))
+        .route("/inspector", routing::get(crate::pages::trace_inspector))
         // JSON API routes
-        .route("/health", axum::routing::get(health_check))
-        .route(
-            "/api/peers",
-            axum::routing::get(crate::api::peers::list_peers),
-        )
-        .route(
-            "/api/sessions",
-            axum::routing::get(crate::api::sessions::list_sessions),
-        )
+        .route("/health", routing::get(health_check))
+        .route("/api/peers", routing::get(crate::api::peers::list_peers))
+        .route("/api/sessions", routing::get(crate::api::sessions::list_sessions))
         .route(
             "/api/debug-sessions",
-            axum::routing::post(crate::api::debug_sessions::create_session)
-                .get(crate::api::debug_sessions::list_sessions),
+            routing::post(crate::api::debug_sessions::create_session).get(crate::api::debug_sessions::list_sessions),
         )
         .route(
             "/api/debug-sessions/{id}",
-            axum::routing::get(crate::api::debug_sessions::get_session),
+            routing::get(crate::api::debug_sessions::get_session),
         )
         .route(
             "/api/debug-sessions/{id}/end",
-            axum::routing::post(crate::api::debug_sessions::end_session),
+            routing::post(crate::api::debug_sessions::end_session),
         )
         .route(
             "/api/peers/{peer_id}/channels",
-            axum::routing::get(crate::api::channels::get_peer_channels),
+            routing::get(crate::api::channels::get_peer_channels),
         )
         // SSE live event stream
-        .route(
-            "/api/events",
-            axum::routing::get(crate::api::events::event_stream),
-        )
+        .route("/api/events", routing::get(crate::api::events::event_stream))
         // Static file serving (CSS, JS)
         .nest_service("/static", ServeDir::new("static"))
         .with_state(state)
-        .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(TraceLayer::new_for_http())
 }
 
 /// Health check endpoint.
@@ -151,7 +131,7 @@ pub async fn run(state: AppState) -> Result<(), Box<dyn std::error::Error + Send
 
     tracing::info!(%addr, "HTTP server listening");
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let listener = TcpListener::bind(addr).await?;
     axum::serve(listener, router).await?;
 
     Ok(())

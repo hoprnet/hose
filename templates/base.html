@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}HOSE{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/hose.css">
+    <link rel="stylesheet" href="/static/css/hose.css" />
     <script type="importmap">
       {
         "imports": {
@@ -22,9 +22,7 @@
       <a href="/debug-sessions">Debug Sessions</a>
       <a href="/inspector">Inspector</a>
     </nav>
-    <div class="page">
-      {% block content %}{% endblock %}
-    </div>
+    <div class="page">{% block content %}{% endblock %}</div>
     {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -1,16 +1,20 @@
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::{
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
+
+use tokio::sync::broadcast;
 use tonic::{Request, Response, Status};
 
-use crate::peer_router::PeerRouter;
-use crate::peer_tracker::PeerTracker;
-use crate::proto::trace_service::trace_service_server::TraceService;
-use crate::proto::trace_service::{ExportTraceServiceRequest, ExportTraceServiceResponse};
-use crate::server::Event;
-use crate::session_tracker::SessionTracker;
-use crate::types::{RoutingDecision, SessionParticipant, SessionRole};
-use crate::write_buffer::{RecordType, WriteBufferSender, WriteRecord};
-use tokio::sync::broadcast;
+use crate::{
+    peer_router::PeerRouter,
+    peer_tracker::PeerTracker,
+    proto::trace_service::{ExportTraceServiceRequest, ExportTraceServiceResponse, trace_service_server::TraceService},
+    server::Event,
+    session_tracker::SessionTracker,
+    types::{RoutingDecision, SessionParticipant, SessionRole},
+    write_buffer::{RecordType, WriteBufferSender, WriteRecord},
+};
 
 /// Rate limiter cooldown for trace sampling (1 event per second).
 const TRACE_SAMPLE_COOLDOWN: Duration = Duration::from_secs(1);
@@ -63,9 +67,7 @@ impl TraceService for TraceReceiver {
                         if attr.key == "service.instance.id" || attr.key == "hopr.peer_id" {
                             attr.value.as_ref().and_then(|v| {
                                 v.value.as_ref().map(|val| match val {
-                                    crate::proto::common::any_value::Value::StringValue(s) => {
-                                        s.clone()
-                                    }
+                                    crate::proto::common::any_value::Value::StringValue(s) => s.clone(),
                                     _ => String::new(),
                                 })
                             })
@@ -97,9 +99,7 @@ impl TraceService for TraceReceiver {
                         if a.key == "hopr.session.id" {
                             a.value.as_ref().and_then(|v| {
                                 v.value.as_ref().map(|val| match val {
-                                    crate::proto::common::any_value::Value::StringValue(s) => {
-                                        s.clone()
-                                    }
+                                    crate::proto::common::any_value::Value::StringValue(s) => s.clone(),
                                     _ => String::new(),
                                 })
                             })
@@ -112,12 +112,9 @@ impl TraceService for TraceReceiver {
                         && !sid.is_empty()
                     {
                         let protocol =
-                            extract_string_attr(&span.attributes, "hopr.session.protocol")
-                                .unwrap_or_default();
-                        let hop_count = extract_int_attr(&span.attributes, "hopr.session.hops")
-                            .unwrap_or(0) as u32;
-                        let role_str = extract_string_attr(&span.attributes, "hopr.session.role")
-                            .unwrap_or_default();
+                            extract_string_attr(&span.attributes, "hopr.session.protocol").unwrap_or_default();
+                        let hop_count = extract_int_attr(&span.attributes, "hopr.session.hops").unwrap_or(0) as u32;
+                        let role_str = extract_string_attr(&span.attributes, "hopr.session.role").unwrap_or_default();
                         let role = match role_str.as_str() {
                             "entry" => SessionRole::Entry,
                             "exit" => SessionRole::Exit,
@@ -151,9 +148,9 @@ impl TraceService for TraceReceiver {
                                 .filter_map(|a| {
                                     a.value.as_ref().and_then(|v| v.value.as_ref()).map(|val| {
                                         let v = match val {
-                                            crate::proto::common::any_value::Value::StringValue(
-                                                s,
-                                            ) => serde_json::Value::String(s.clone()),
+                                            crate::proto::common::any_value::Value::StringValue(s) => {
+                                                serde_json::Value::String(s.clone())
+                                            }
                                             crate::proto::common::any_value::Value::IntValue(i) => {
                                                 serde_json::json!(i)
                                             }
@@ -209,9 +206,7 @@ impl TraceService for TraceReceiver {
             }
         }
 
-        Ok(Response::new(ExportTraceServiceResponse {
-            partial_success: None,
-        }))
+        Ok(Response::new(ExportTraceServiceResponse { partial_success: None }))
     }
 }
 
@@ -281,10 +276,7 @@ mod tests {
     fn rate_limiter_returns_false_within_cooldown() {
         let limiter = make_rate_limiter();
         assert!(should_sample(&limiter));
-        assert!(
-            !should_sample(&limiter),
-            "immediate second call should return false"
-        );
+        assert!(!should_sample(&limiter), "immediate second call should return false");
     }
 
     #[test]
@@ -298,9 +290,6 @@ mod tests {
             *guard = Some(Instant::now() - Duration::from_secs(2));
         }
 
-        assert!(
-            should_sample(&limiter),
-            "should return true after cooldown has elapsed"
-        );
+        assert!(should_sample(&limiter), "should return true after cooldown has elapsed");
     }
 }

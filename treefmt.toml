@@ -1,15 +1,15 @@
 [formatter.rust]
-command = "cargo"
-options = ["fmt", "--"]
+command  = "cargo"
 includes = ["*.rs"]
+options  = ["--", "fmt"]
 
 [formatter.deno]
-command = "deno"
-options = ["fmt"]
-includes = ["*.html", "*.css", "*.md", "*.json"]
-excludes = ["static/js/**", "node_modules/**", "lib/**", ".beads/**"]
+command  = "deno"
+excludes = [".beads/**", "lib/**", "node_modules/**", "static/js/**"]
+includes = ["*.css", "*.html", "*.json", "*.md"]
+options  = ["fmt"]
 
 [formatter.rescript]
-command = "npx"
-options = ["rescript", "format"]
+command  = "npx"
 includes = ["*.res"]
+options  = ["format", "rescript"]

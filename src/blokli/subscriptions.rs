@@ -1,8 +1,11 @@
-use std::time::Duration;
-use tokio::sync::broadcast;
+use std::{collections::HashMap, time::Duration};
 
-use super::BlokliClient;
-use super::channels::{ChannelData, query_peer_channels};
+use tokio::{sync::broadcast, time::MissedTickBehavior};
+
+use super::{
+    BlokliClient,
+    channels::{ChannelData, query_peer_channels},
+};
 
 /// Event emitted when channel state changes are detected.
 #[derive(Debug, Clone)]
@@ -24,10 +27,9 @@ pub fn spawn_channel_watcher(
 ) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(poll_interval);
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
-        let mut last_known: std::collections::HashMap<String, ChannelData> =
-            std::collections::HashMap::new();
+        let mut last_known: HashMap<String, ChannelData> = HashMap::new();
 
         loop {
             interval.tick().await;

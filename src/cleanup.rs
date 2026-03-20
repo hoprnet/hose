@@ -1,5 +1,7 @@
-use sqlx::SqlitePool;
 use std::time::Duration;
+
+use sqlx::SqlitePool;
+use tokio::time::MissedTickBehavior;
 
 use crate::db::debug_sessions;
 
@@ -9,7 +11,7 @@ use crate::db::debug_sessions;
 pub fn spawn_cleanup_task(pool: SqlitePool, retention_hours: u64) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(3600));
-        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
         loop {
             interval.tick().await;

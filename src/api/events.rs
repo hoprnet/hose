@@ -1,16 +1,16 @@
-use axum::extract::State;
-use axum::response::sse::{Event as SseEvent, Sse};
+use std::{convert::Infallible, time::Duration};
+
+use axum::{
+    extract::State,
+    response::sse::{Event as SseEvent, KeepAlive, Sse},
+};
 use futures::stream::Stream;
-use std::convert::Infallible;
-use tokio_stream::StreamExt;
-use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
 use crate::server::{AppState, Event};
 
 /// GET /api/events - SSE stream of live events.
-pub async fn event_stream(
-    State(state): State<AppState>,
-) -> Sse<impl Stream<Item = Result<SseEvent, Infallible>>> {
+pub async fn event_stream(State(state): State<AppState>) -> Sse<impl Stream<Item = Result<SseEvent, Infallible>>> {
     let rx = state.event_tx.subscribe();
     let stream = BroadcastStream::new(rx).filter_map(|result| {
         match result {
@@ -29,7 +29,5 @@ pub async fn event_stream(
         }
     });
 
-    Sse::new(stream).keep_alive(
-        axum::response::sse::KeepAlive::new().interval(std::time::Duration::from_secs(15)),
-    )
+    Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(15)))
 }

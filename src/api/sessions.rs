@@ -1,8 +1,6 @@
-use axum::Json;
-use axum::extract::State;
+use axum::{Json, extract::State};
 
-use crate::server::AppState;
-use crate::types::HoprSession;
+use crate::{server::AppState, types::HoprSession};
 
 /// GET /api/sessions - List all active HOPR sessions.
 #[tracing::instrument(skip(state))]

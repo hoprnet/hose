@@ -4,10 +4,11 @@ pkgs.buildNpmPackage {
   pname = "hose-rescript";
   version = "0.1.0";
 
-  src = let
-    fs = pkgs.lib.fileset;
-    root = ./..;
-  in
+  src =
+    let
+      fs = pkgs.lib.fileset;
+      root = ./..;
+    in
     fs.toSource {
       inherit root;
       fileset = fs.unions [

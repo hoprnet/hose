@@ -57,7 +57,9 @@ async function getToken(): Promise<string> {
   });
   const { code, stdout } = await proc.output();
   if (code !== 0) {
-    console.error("Error: No GITHUB_TOKEN and `gh auth token` failed. Authenticate with `gh auth login`.");
+    console.error(
+      "Error: No GITHUB_TOKEN and `gh auth token` failed. Authenticate with `gh auth login`.",
+    );
     Deno.exit(1);
   }
   return new TextDecoder().decode(stdout).trim();
@@ -65,7 +67,10 @@ async function getToken(): Promise<string> {
 
 async function ghFetch<T>(token: string, path: string): Promise<T | null> {
   const resp = await fetch(`https://api.github.com/${path}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+    },
   });
   if (!resp.ok) return null;
   return (await resp.json()) as T;
@@ -73,13 +78,22 @@ async function ghFetch<T>(token: string, path: string): Promise<T | null> {
 
 // --- Pagination helper for releases ---
 
-async function fetchAllReleases(token: string, repo: string): Promise<GitHubRelease[]> {
+async function fetchAllReleases(
+  token: string,
+  repo: string,
+): Promise<GitHubRelease[]> {
   const releases: GitHubRelease[] = [];
   let page = 1;
   while (true) {
-    const resp = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-    });
+    const resp = await fetch(
+      `https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+        },
+      },
+    );
     if (!resp.ok) return releases;
     const batch = (await resp.json()) as GitHubRelease[];
     if (batch.length === 0) break;
@@ -93,7 +107,8 @@ async function fetchAllReleases(token: string, repo: string): Promise<GitHubRele
 
 // --- Parsing ---
 
-const PIN_RE = /uses:\s+([a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+)@([0-9a-f]{40})\s+#\s+(v\S+)\s+from\s+\d{2}\.\d{2}\.\d{4}/g;
+const PIN_RE =
+  /uses:\s+([a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+)@([0-9a-f]{40})\s+#\s+(v\S+)\s+from\s+\d{2}\.\d{2}\.\d{4}/g;
 
 function parsePinnedActions(content: string): PinnedAction[] {
   const seen = new Map<string, PinnedAction>();
@@ -109,7 +124,11 @@ function parsePinnedActions(content: string): PinnedAction[] {
 
 // --- Resolution ---
 
-async function findLatestTag(token: string, repo: string, major: string): Promise<string | null> {
+async function findLatestTag(
+  token: string,
+  repo: string,
+  major: string,
+): Promise<string | null> {
   // Try releases first
   const releases = await fetchAllReleases(token, repo);
   const matching = releases
@@ -119,20 +138,33 @@ async function findLatestTag(token: string, repo: string, major: string): Promis
   if (matching.length > 0) return matching[0].tag_name;
 
   // Fallback: git matching-refs
-  const refs = await ghFetch<GitHubRef[]>(token, `repos/${repo}/git/matching-refs/tags/${major}`);
+  const refs = await ghFetch<GitHubRef[]>(
+    token,
+    `repos/${repo}/git/matching-refs/tags/${major}`,
+  );
   if (!refs || refs.length === 0) return null;
 
   const tags = refs.map((r) => r.ref.replace("refs/tags/", "")).sort();
   return tags[tags.length - 1];
 }
 
-async function resolveTagSha(token: string, repo: string, tag: string): Promise<string | null> {
-  const ref = await ghFetch<GitHubRef>(token, `repos/${repo}/git/ref/tags/${tag}`);
+async function resolveTagSha(
+  token: string,
+  repo: string,
+  tag: string,
+): Promise<string | null> {
+  const ref = await ghFetch<GitHubRef>(
+    token,
+    `repos/${repo}/git/ref/tags/${tag}`,
+  );
   if (!ref) return null;
 
   // Dereference annotated tags
   if (ref.object.type === "tag") {
-    const tagObj = await ghFetch<GitHubTag>(token, `repos/${repo}/git/tags/${ref.object.sha}`);
+    const tagObj = await ghFetch<GitHubTag>(
+      token,
+      `repos/${repo}/git/tags/${ref.object.sha}`,
+    );
     return tagObj?.object.sha ?? null;
   }
 
@@ -172,7 +204,9 @@ Options:
   }
 
   if (files.length === 0) {
-    console.error(`Error: No .yml files in ${WORKFLOW_DIR}. Run from the repo root.`);
+    console.error(
+      `Error: No .yml files in ${WORKFLOW_DIR}. Run from the repo root.`,
+    );
     Deno.exit(1);
   }
 
@@ -192,11 +226,15 @@ Options:
 
   for (const action of actions.sort((a, b) => a.repo.localeCompare(b.repo))) {
     const searchPrefix = major ? "v" : action.major;
-    console.log(`── ${action.repo} (pinned: ${action.tag}, searching: ${searchPrefix}*)`);
+    console.log(
+      `── ${action.repo} (pinned: ${action.tag}, searching: ${searchPrefix}*)`,
+    );
 
     const latestTag = await findLatestTag(token, action.repo, searchPrefix);
     if (!latestTag) {
-      console.log(`   ⚠ No release found matching ${searchPrefix}* — skipping\n`);
+      console.log(
+        `   ⚠ No release found matching ${searchPrefix}* — skipping\n`,
+      );
       continue;
     }
 
@@ -212,12 +250,16 @@ Options:
     }
 
     hasUpdates = true;
-    const latestMajor = latestTag.includes(".") ? latestTag.slice(0, latestTag.indexOf(".")) : latestTag;
+    const latestMajor = latestTag.includes(".")
+      ? latestTag.slice(0, latestTag.indexOf("."))
+      : latestTag;
     const isMajorBump = latestMajor !== action.major;
     console.log(`   Current: ${action.tag} @ ${action.sha.slice(0, 12)}…`);
     console.log(`   Latest:  ${latestTag} @ ${latestSha.slice(0, 12)}…`);
     if (isMajorBump) {
-      console.log(`   ⚠ MAJOR version change: ${action.major} → ${latestMajor}`);
+      console.log(
+        `   ⚠ MAJOR version change: ${action.major} → ${latestMajor}`,
+      );
     }
 
     if (apply) {
@@ -228,9 +270,9 @@ Options:
       const dateStr = `${dd}.${mm}.${yyyy}`;
 
       const oldPattern = new RegExp(
-        `${escapeRegex(action.repo)}@${action.sha}\\s+#\\s+${
-          escapeRegex(action.tag)
-        }\\s+from\\s+\\d{2}\\.\\d{2}\\.\\d{4}`,
+        `${escapeRegex(action.repo)}@${action.sha}\\s+#\\s+${escapeRegex(
+          action.tag,
+        )}\\s+from\\s+\\d{2}\\.\\d{2}\\.\\d{4}`,
         "g",
       );
       const replacement = `${action.repo}@${latestSha} # ${latestTag} from ${dateStr}`;

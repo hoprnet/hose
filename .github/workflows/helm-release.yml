@@ -1,12 +1,10 @@
 name: Release Helm Charts
-
 on:
   push:
     branches:
       - main
     paths:
       - "charts/**"
-
 jobs:
   release:
     runs-on: self-hosted-hoprnet-bigger
@@ -17,15 +15,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
         with:
           fetch-depth: 0
-
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
       - name: Install Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4 from 19.08.2025
-
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0 from 19.03.2026
         env:

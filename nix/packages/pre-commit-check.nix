@@ -19,8 +19,10 @@ pre-commit.lib.${system}.run {
     treefmt.enable = true;
     treefmt.package = config.treefmt.build.wrapper;
 
-    # Rust linting
-    clippy.enable = true;
+    # Clippy runs in CI via `nix develop -c cargo clippy` using the correct
+    # rust-overlay toolchain.  The pre-commit clippy uses nixpkgs' rustc which
+    # is a different version and cannot read artifacts built by the dev shell.
+    clippy.enable = false;
 
     # Shell script validation
     check-executables-have-shebangs.enable = true;

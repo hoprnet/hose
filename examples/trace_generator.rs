@@ -7,14 +7,15 @@
 //!   cargo run --example trace_generator
 //!   cargo run --example trace_generator -- http://localhost:4317
 
-use hose::proto::common::{AnyValue, KeyValue, any_value};
-use hose::proto::resource::Resource;
-use hose::proto::trace::{ResourceSpans, ScopeSpans, Span};
-use hose::proto::trace_service::ExportTraceServiceRequest;
-use hose::proto::trace_service::trace_service_client::TraceServiceClient;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use hose::proto::{
+    common::{AnyValue, KeyValue, any_value},
+    resource::Resource,
+    trace::{ResourceSpans, ScopeSpans, Span},
+    trace_service::{ExportTraceServiceRequest, trace_service_client::TraceServiceClient},
+};
 use rand::Rng;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const PEER_IDS: &[&str] = &[
     "16Uiu2HAmSynth001",
@@ -68,10 +69,7 @@ fn random_bytes(rng: &mut impl Rng, len: usize) -> Vec<u8> {
 }
 
 fn now_nanos() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as u64
 }
 
 fn generate_batch(rng: &mut impl Rng) -> ExportTraceServiceRequest {
@@ -175,6 +173,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
     }
 }

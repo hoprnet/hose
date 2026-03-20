@@ -1,9 +1,12 @@
 pub mod debug_sessions;
 pub mod telemetry;
 
-use sqlx::SqlitePool;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
+
+use sqlx::{
+    SqlitePool,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+};
 
 use crate::config::Config;
 
@@ -12,10 +15,10 @@ pub async fn init_pool(config: &Config) -> Result<SqlitePool, sqlx::Error> {
     let db_url = format!("sqlite:{}?mode=rwc", config.database_path.display());
 
     let options = SqliteConnectOptions::from_str(&db_url)?
-        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
-        .synchronous(sqlx::sqlite::SqliteSynchronous::Normal)
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
         .foreign_keys(true)
-        .busy_timeout(std::time::Duration::from_secs(5));
+        .busy_timeout(Duration::from_secs(5));
 
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
@@ -23,9 +26,7 @@ pub async fn init_pool(config: &Config) -> Result<SqlitePool, sqlx::Error> {
         .await?;
 
     // Enable WAL checkpoint on close
-    sqlx::query("PRAGMA wal_autocheckpoint = 1000")
-        .execute(&pool)
-        .await?;
+    sqlx::query("PRAGMA wal_autocheckpoint = 1000").execute(&pool).await?;
 
     run_migrations(&pool).await?;
 

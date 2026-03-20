@@ -1,29 +1,34 @@
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use hose::blokli::BlokliClient;
-use hose::cleanup::spawn_cleanup_task;
-use hose::config::Config;
-use hose::identity::IdentityBridge;
-use hose::peer_router::PeerRouter;
-use hose::peer_tracker::PeerTracker;
-use hose::proto::logs_service::logs_service_server::LogsServiceServer;
-use hose::proto::metrics_service::metrics_service_server::MetricsServiceServer;
-use hose::proto::trace_service::trace_service_server::TraceServiceServer;
-use hose::receiver::logs::LogsReceiver;
-use hose::receiver::metrics::MetricsReceiver;
-use hose::receiver::trace::TraceReceiver;
-use hose::server::AppState;
-use hose::session_tracker::SessionTracker;
-use hose::write_buffer::spawn_write_buffer;
+use hose::{
+    blokli::{BlokliClient, subscriptions::spawn_channel_watcher},
+    cleanup::spawn_cleanup_task,
+    config::Config,
+    identity::IdentityBridge,
+    peer_router::PeerRouter,
+    peer_tracker::PeerTracker,
+    proto::{
+        logs_service::logs_service_server::LogsServiceServer,
+        metrics_service::metrics_service_server::MetricsServiceServer,
+        trace_service::trace_service_server::TraceServiceServer,
+    },
+    receiver::{logs::LogsReceiver, metrics::MetricsReceiver, trace::TraceReceiver},
+    server::AppState,
+    session_tracker::SessionTracker,
+    write_buffer::spawn_write_buffer,
+};
+use tokio::{net::TcpListener, sync::broadcast};
+use tonic::transport::Server;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Initialize tracing with env-filter support (defaults to info level).
     tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .init();
 
     // Load configuration from config file, environment variables, and CLI parameters.
@@ -58,13 +63,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     if let Some(ref client) = blokli_client {
-        let (change_tx, _) = tokio::sync::broadcast::channel(256);
-        hose::blokli::subscriptions::spawn_channel_watcher(
-            client.clone(),
-            vec![],
-            change_tx,
-            Duration::from_secs(30),
-        );
+        let (change_tx, _) = broadcast::channel(256);
+        spawn_channel_watcher(client.clone(), vec![], change_tx, Duration::from_secs(30));
         tracing::info!("channel watcher spawned");
     }
 
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         peer_router: peer_router.clone(),
         write_buffer: write_buffer.clone(),
         event_tx: event_tx.clone(),
-        last_trace_sample: std::sync::Arc::new(std::sync::Mutex::new(None)),
+        last_trace_sample: Arc::new(Mutex::new(None)),
     };
 
     let metrics_receiver = MetricsReceiver {
@@ -110,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Build the gRPC server.
     let grpc_addr = config.grpc_listen_addr;
-    let grpc_server = tonic::transport::Server::builder()
+    let grpc_server = Server::builder()
         .add_service(TraceServiceServer::new(trace_receiver))
         .add_service(MetricsServiceServer::new(metrics_receiver))
         .add_service(LogsServiceServer::new(logs_receiver))
@@ -121,7 +121,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Build the HTTP server.
     let http_addr = config.http_listen_addr;
     let router = hose::server::build_router(state);
-    let http_listener = tokio::net::TcpListener::bind(http_addr).await?;
+    let http_listener = TcpListener::bind(http_addr).await?;
     tracing::info!(%http_addr, "HTTP server listening");
 
     let http_server = axum::serve(http_listener, router);

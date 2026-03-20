@@ -1,6 +1,6 @@
+use std::{collections::HashMap, sync::Arc};
+
 use chrono::Utc;
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::types::{HoprSession, SessionParticipant};
@@ -37,11 +37,7 @@ impl SessionTracker {
                 s.last_seen = now;
                 s.hop_count = hop_count;
                 // Merge participant: update if same peer_id, insert if new
-                if let Some(existing) = s
-                    .participants
-                    .iter_mut()
-                    .find(|p| p.peer_id == participant.peer_id)
-                {
+                if let Some(existing) = s.participants.iter_mut().find(|p| p.peer_id == participant.peer_id) {
                     existing.role = participant.role;
                 } else {
                     s.participants.push(participant.clone());
@@ -103,6 +99,8 @@ impl Default for SessionTracker {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
     use crate::types::SessionRole;
 
@@ -144,11 +142,7 @@ mod tests {
         let session = tracker.get_session("s1").await.unwrap();
         assert_eq!(session.participants.len(), 2);
 
-        let peer_ids: Vec<&str> = session
-            .participants
-            .iter()
-            .map(|p| p.peer_id.as_str())
-            .collect();
+        let peer_ids: Vec<&str> = session.participants.iter().map(|p| p.peer_id.as_str()).collect();
         assert!(peer_ids.contains(&"peer-1"));
         assert!(peer_ids.contains(&"peer-2"));
     }
@@ -176,7 +170,7 @@ mod tests {
             .update_session("s1", "tcp", 1, participant("peer-1", SessionRole::Entry))
             .await;
 
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        tokio::time::sleep(Duration::from_millis(10)).await;
 
         tracker
             .update_session("s2", "udp", 2, participant("peer-2", SessionRole::Entry))

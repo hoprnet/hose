@@ -1,13 +1,15 @@
-use hose::config::Config;
-use hose::identity::IdentityBridge;
-use hose::peer_router::PeerRouter;
-use hose::peer_tracker::PeerTracker;
-use hose::server::{AppState, build_router};
-use hose::session_tracker::SessionTracker;
-use hose::types::{DebugSession, Peer};
-
+use hose::{
+    config::Config,
+    identity::IdentityBridge,
+    peer_router::PeerRouter,
+    peer_tracker::PeerTracker,
+    server::{AppState, build_router},
+    session_tracker::SessionTracker,
+    types::{DebugSession, Peer},
+};
 use reqwest::Client;
 use sqlx::SqlitePool;
+use tokio::net::TcpListener;
 
 /// Set up an in-memory SQLite database with the schema applied.
 async fn setup_db() -> SqlitePool {
@@ -21,10 +23,7 @@ async fn setup_db() -> SqlitePool {
         }
     }
 
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await.unwrap();
 
     pool
 }
@@ -50,7 +49,7 @@ async fn spawn_test_server() -> (String, AppState) {
     );
 
     let router = build_router(state.clone());
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
     tokio::spawn(async move {
@@ -70,11 +69,7 @@ async fn health_check_returns_ok() {
     let (base_url, _state) = spawn_test_server().await;
     let client = Client::new();
 
-    let resp = client
-        .get(format!("{}/health", base_url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/health", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 200);
     assert_eq!(resp.text().await.unwrap(), "ok");
@@ -111,10 +106,7 @@ async fn create_debug_session_returns_201() {
         hose::types::DebugSessionStatus::Active,
         "session should start as active"
     );
-    assert!(
-        session.ended_at.is_none(),
-        "ended_at should be None for a new session"
-    );
+    assert!(session.ended_at.is_none(), "ended_at should be None for a new session");
 }
 
 // ---------------------------------------------------------------------------
@@ -148,16 +140,10 @@ async fn list_debug_sessions_contains_created_session() {
     assert_eq!(list_resp.status(), 200);
 
     let sessions: Vec<DebugSession> = list_resp.json().await.unwrap();
-    assert!(
-        !sessions.is_empty(),
-        "session list should not be empty after creation"
-    );
+    assert!(!sessions.is_empty(), "session list should not be empty after creation");
 
     let found = sessions.iter().find(|s| s.id == created.id);
-    assert!(
-        found.is_some(),
-        "the created session should appear in the list"
-    );
+    assert!(found.is_some(), "the created session should appear in the list");
     assert_eq!(found.unwrap().name, "listed session");
 }
 
@@ -234,10 +220,7 @@ async fn end_debug_session_transitions_to_completed() {
 
     // End it
     let end_resp = client
-        .post(format!(
-            "{}/api/debug-sessions/{}/end",
-            base_url, created.id
-        ))
+        .post(format!("{}/api/debug-sessions/{}/end", base_url, created.id))
         .send()
         .await
         .unwrap();
@@ -256,10 +239,7 @@ async fn end_debug_session_transitions_to_completed() {
         hose::types::DebugSessionStatus::Completed,
         "session should be completed after ending"
     );
-    assert!(
-        session.ended_at.is_some(),
-        "ended_at should be set after ending"
-    );
+    assert!(session.ended_at.is_some(), "ended_at should be set after ending");
 }
 
 #[tokio::test]
@@ -280,20 +260,14 @@ async fn end_already_completed_session_returns_404() {
     let created: DebugSession = create_resp.json().await.unwrap();
 
     client
-        .post(format!(
-            "{}/api/debug-sessions/{}/end",
-            base_url, created.id
-        ))
+        .post(format!("{}/api/debug-sessions/{}/end", base_url, created.id))
         .send()
         .await
         .unwrap();
 
     // Try ending it again
     let second_end = client
-        .post(format!(
-            "{}/api/debug-sessions/{}/end",
-            base_url, created.id
-        ))
+        .post(format!("{}/api/debug-sessions/{}/end", base_url, created.id))
         .send()
         .await
         .unwrap();
@@ -314,11 +288,7 @@ async fn inspector_page_returns_200() {
     let (base_url, _state) = spawn_test_server().await;
     let client = Client::new();
 
-    let resp = client
-        .get(format!("{}/inspector", base_url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/inspector", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 200, "inspector page should return 200");
     let body = resp.text().await.unwrap();
@@ -337,11 +307,7 @@ async fn events_endpoint_returns_sse_content_type() {
     let (base_url, _state) = spawn_test_server().await;
     let client = Client::new();
 
-    let resp = client
-        .get(format!("{}/api/events", base_url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/api/events", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 200);
     let content_type = resp
@@ -388,11 +354,7 @@ async fn peers_returns_empty_list_initially() {
     let (base_url, _state) = spawn_test_server().await;
     let client = Client::new();
 
-    let resp = client
-        .get(format!("{}/api/peers", base_url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/api/peers", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 200);
 
@@ -412,11 +374,7 @@ async fn peers_returns_tracked_peer() {
     // Simulate a peer being seen (as the gRPC receiver would do)
     state.peer_tracker.record_seen("16Uiu2HAmTestPeer").await;
 
-    let resp = client
-        .get(format!("{}/api/peers", base_url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/api/peers", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 200);
 
@@ -434,11 +392,7 @@ async fn peers_returns_multiple_tracked_peers_sorted() {
     state.peer_tracker.record_seen("alice").await;
     state.peer_tracker.record_seen("bob").await;
 
-    let resp = client
-        .get(format!("{}/api/peers", base_url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/api/peers", base_url)).send().await.unwrap();
 
     let peers: Vec<Peer> = resp.json().await.unwrap();
     assert_eq!(peers.len(), 3);
@@ -500,10 +454,7 @@ async fn debug_session_full_lifecycle() {
 
     // Step 5: End the session
     let end_resp = client
-        .post(format!(
-            "{}/api/debug-sessions/{}/end",
-            base_url, created.id
-        ))
+        .post(format!("{}/api/debug-sessions/{}/end", base_url, created.id))
         .send()
         .await
         .unwrap();

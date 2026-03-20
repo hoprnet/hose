@@ -1,11 +1,15 @@
-use axum::Json;
-use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+};
 use serde::Deserialize;
 
-use crate::db::debug_sessions;
-use crate::server::{AppState, Event};
-use crate::types::DebugSession;
+use crate::{
+    db::debug_sessions,
+    server::{AppState, Event},
+    types::DebugSession,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateDebugSessionRequest {
@@ -27,10 +31,7 @@ pub async fn create_session(
         })?;
 
     // Register peers in the router for retention
-    state
-        .peer_router
-        .add_session(session.id, &req.peer_ids)
-        .await;
+    state.peer_router.add_session(session.id, &req.peer_ids).await;
 
     state.emit(Event::DebugSessionUpdated {
         session_id: session.id.to_string(),
@@ -48,15 +49,11 @@ pub async fn create_session(
 
 /// GET /api/debug-sessions - List all debug sessions.
 #[tracing::instrument(skip(state))]
-pub async fn list_sessions(
-    State(state): State<AppState>,
-) -> Result<Json<Vec<DebugSession>>, (StatusCode, String)> {
-    let sessions = debug_sessions::list_debug_sessions(&state.db)
-        .await
-        .map_err(|e| {
-            tracing::error!(error = %e, "failed to list debug sessions");
-            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-        })?;
+pub async fn list_sessions(State(state): State<AppState>) -> Result<Json<Vec<DebugSession>>, (StatusCode, String)> {
+    let sessions = debug_sessions::list_debug_sessions(&state.db).await.map_err(|e| {
+        tracing::error!(error = %e, "failed to list debug sessions");
+        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+    })?;
     tracing::debug!(count = sessions.len(), "debug sessions listed");
     Ok(Json(sessions))
 }

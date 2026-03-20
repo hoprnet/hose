@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
+
 use tokio::sync::RwLock;
 
 use crate::blokli::{BlokliClient, BlokliError};
@@ -84,10 +84,7 @@ impl IdentityBridge {
 
     /// Manually insert a known mapping (e.g., from telemetry attributes).
     pub async fn insert_mapping(&self, key_id: String, peer_id: String) {
-        self.key_to_peer
-            .write()
-            .await
-            .insert(key_id.clone(), peer_id.clone());
+        self.key_to_peer.write().await.insert(key_id.clone(), peer_id.clone());
         self.peer_to_key.write().await.insert(peer_id, key_id);
     }
 

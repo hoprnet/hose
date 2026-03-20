@@ -1,6 +1,10 @@
-use sqlx::SqlitePool;
 use std::time::Duration;
-use tokio::sync::mpsc;
+
+use sqlx::SqlitePool;
+use tokio::{
+    sync::{mpsc, mpsc::error::TrySendError},
+    time::MissedTickBehavior,
+};
 use uuid::Uuid;
 
 /// A record queued for writing to the database.
@@ -30,11 +34,11 @@ impl WriteBufferSender {
     pub fn try_send(&self, record: WriteRecord) -> bool {
         match self.tx.try_send(record) {
             Ok(()) => true,
-            Err(mpsc::error::TrySendError::Full(_)) => {
+            Err(TrySendError::Full(_)) => {
                 tracing::warn!("write buffer full, dropping telemetry record");
                 false
             }
-            Err(mpsc::error::TrySendError::Closed(_)) => {
+            Err(TrySendError::Closed(_)) => {
                 tracing::error!("write buffer closed");
                 false
             }
@@ -62,7 +66,7 @@ async fn flush_loop(
 ) {
     let mut batch: Vec<WriteRecord> = Vec::with_capacity(batch_size);
     let mut interval = tokio::time::interval(flush_interval);
-    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
     loop {
         tokio::select! {
@@ -104,24 +108,13 @@ async fn write_batch_to_db(pool: &SqlitePool, batch: &[WriteRecord]) -> Result<(
 
         match record.record_type {
             RecordType::Span => {
-                let operation_name = record
-                    .payload
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                let trace_id = record
-                    .payload
-                    .get("traceId")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                let span_id = record
-                    .payload
-                    .get("spanId")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+                let operation_name = record.payload.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                let trace_id = record.payload.get("traceId").and_then(|v| v.as_str()).unwrap_or("");
+                let span_id = record.payload.get("spanId").and_then(|v| v.as_str()).unwrap_or("");
 
                 sqlx::query(
-                    "INSERT INTO telemetry_spans (id, debug_session_id, peer_id, trace_id, span_id, operation_name, start_time, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO telemetry_spans (id, debug_session_id, peer_id, trace_id, span_id, operation_name, \
+                     start_time, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 )
                 .bind(&id)
                 .bind(&session_id)
@@ -135,14 +128,11 @@ async fn write_batch_to_db(pool: &SqlitePool, batch: &[WriteRecord]) -> Result<(
                 .await?;
             }
             RecordType::Metric => {
-                let metric_name = record
-                    .payload
-                    .get("name")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+                let metric_name = record.payload.get("name").and_then(|v| v.as_str()).unwrap_or("");
 
                 sqlx::query(
-                    "INSERT INTO telemetry_metrics (id, debug_session_id, peer_id, metric_name, timestamp, attributes) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO telemetry_metrics (id, debug_session_id, peer_id, metric_name, timestamp, \
+                     attributes) VALUES (?, ?, ?, ?, ?, ?)",
                 )
                 .bind(&id)
                 .bind(&session_id)
@@ -159,14 +149,11 @@ async fn write_batch_to_db(pool: &SqlitePool, batch: &[WriteRecord]) -> Result<(
                     .get("severityText")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
-                let body = record
-                    .payload
-                    .get("body")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+                let body = record.payload.get("body").and_then(|v| v.as_str()).unwrap_or("");
 
                 sqlx::query(
-                    "INSERT INTO telemetry_logs (id, debug_session_id, peer_id, severity, body, timestamp, attributes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO telemetry_logs (id, debug_session_id, peer_id, severity, body, timestamp, \
+                     attributes) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 )
                 .bind(&id)
                 .bind(&session_id)
@@ -187,10 +174,12 @@ async fn write_batch_to_db(pool: &SqlitePool, batch: &[WriteRecord]) -> Result<(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::time::Duration;
+
     use serde_json::json;
     use sqlx::SqlitePool;
-    use std::time::Duration;
+
+    use super::*;
 
     /// Create an in-memory SQLite pool with the schema applied.
     async fn setup_pool() -> SqlitePool {
@@ -205,11 +194,13 @@ mod tests {
     /// Insert a debug session and return its id.
     async fn insert_debug_session(pool: &SqlitePool) -> Uuid {
         let session_id = Uuid::new_v4();
-        sqlx::query("INSERT INTO debug_sessions (id, name, status, created_at) VALUES (?, 'test', 'active', datetime('now'))")
-            .bind(session_id.to_string())
-            .execute(pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO debug_sessions (id, name, status, created_at) VALUES (?, 'test', 'active', datetime('now'))",
+        )
+        .bind(session_id.to_string())
+        .execute(pool)
+        .await
+        .unwrap();
         session_id
     }
 
@@ -271,10 +262,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            count.0, 1,
-            "one span record should have been flushed to the database"
-        );
+        assert_eq!(count.0, 1, "one span record should have been flushed to the database");
     }
 
     #[tokio::test]
@@ -319,9 +307,6 @@ mod tests {
         let session_id = Uuid::new_v4();
         let result = sender.try_send(make_record(session_id, RecordType::Log));
 
-        assert!(
-            !result,
-            "try_send should return false when the channel is closed"
-        );
+        assert!(!result, "try_send should return false when the channel is closed");
     }
 }

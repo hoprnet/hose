@@ -1,13 +1,14 @@
+use tokio::sync::broadcast;
 use tonic::{Request, Response, Status};
 
-use crate::peer_router::PeerRouter;
-use crate::peer_tracker::PeerTracker;
-use crate::proto::logs_service::logs_service_server::LogsService;
-use crate::proto::logs_service::{ExportLogsServiceRequest, ExportLogsServiceResponse};
-use crate::server::Event;
-use crate::types::RoutingDecision;
-use crate::write_buffer::{RecordType, WriteBufferSender, WriteRecord};
-use tokio::sync::broadcast;
+use crate::{
+    peer_router::PeerRouter,
+    peer_tracker::PeerTracker,
+    proto::logs_service::{ExportLogsServiceRequest, ExportLogsServiceResponse, logs_service_server::LogsService},
+    server::Event,
+    types::RoutingDecision,
+    write_buffer::{RecordType, WriteBufferSender, WriteRecord},
+};
 
 #[derive(Debug, Clone)]
 pub struct LogsReceiver {
@@ -34,9 +35,7 @@ impl LogsService for LogsReceiver {
                         if attr.key == "service.instance.id" || attr.key == "hopr.peer_id" {
                             attr.value.as_ref().and_then(|v| {
                                 v.value.as_ref().map(|val| match val {
-                                    crate::proto::common::any_value::Value::StringValue(s) => {
-                                        s.clone()
-                                    }
+                                    crate::proto::common::any_value::Value::StringValue(s) => s.clone(),
                                     _ => String::new(),
                                 })
                             })
@@ -76,9 +75,7 @@ impl LogsService for LogsReceiver {
                                 .as_ref()
                                 .and_then(|v| {
                                     v.value.as_ref().map(|val| match val {
-                                        crate::proto::common::any_value::Value::StringValue(s) => {
-                                            s.clone()
-                                        }
+                                        crate::proto::common::any_value::Value::StringValue(s) => s.clone(),
                                         _ => format!("{:?}", val),
                                     })
                                 })
@@ -105,8 +102,6 @@ impl LogsService for LogsReceiver {
             }
         }
 
-        Ok(Response::new(ExportLogsServiceResponse {
-            partial_success: None,
-        }))
+        Ok(Response::new(ExportLogsServiceResponse { partial_success: None }))
     }
 }

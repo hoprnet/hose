@@ -1,8 +1,6 @@
 {
   "name": "hose-rescript",
-  "sources": [
-    { "dir": "rescript/src", "subdirs": true }
-  ],
+  "sources": [{ "dir": "rescript/src", "subdirs": true }],
   "package-specs": [
     { "module": "esmodule", "in-source": false, "suffix": ".mjs" }
   ],

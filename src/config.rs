@@ -1,6 +1,4 @@
-use std::net::SocketAddr;
-use std::path::PathBuf;
-use std::time::Duration;
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 
 use clap::Parser;
 use serde::Deserialize;
@@ -99,10 +97,7 @@ impl Config {
     /// clap) on top of an optional TOML config file, on top of built-in defaults.
     ///
     /// Precedence (highest to lowest): CLI args > env vars > config file > defaults.
-    fn from_cli_and_file(
-        cli: CliArgs,
-        file: FileConfig,
-    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    fn from_cli_and_file(cli: CliArgs, file: FileConfig) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let defaults = Self::default();
 
         Ok(Self {
@@ -205,10 +200,7 @@ mod tests {
 
         let config = Config::from_cli_and_file(cli, file).unwrap();
 
-        assert_eq!(
-            config.indexer_endpoint.as_deref(),
-            Some("http://example.com/graphql")
-        );
+        assert_eq!(config.indexer_endpoint.as_deref(), Some("http://example.com/graphql"));
         assert_eq!(config.grpc_listen_addr, "127.0.0.1:9999".parse().unwrap());
         // http_listen not in file → falls back to default
         assert_eq!(config.http_listen_addr, "0.0.0.0:8080".parse().unwrap());
@@ -244,10 +236,7 @@ mod tests {
         let config = Config::from_cli_and_file(cli, file).unwrap();
 
         // CLI values should win over file values
-        assert_eq!(
-            config.indexer_endpoint.as_deref(),
-            Some("http://cli-endpoint.com")
-        );
+        assert_eq!(config.indexer_endpoint.as_deref(), Some("http://cli-endpoint.com"));
         assert_eq!(config.grpc_listen_addr, "127.0.0.1:1111".parse().unwrap());
         assert_eq!(config.http_listen_addr, "127.0.0.1:2222".parse().unwrap());
         assert_eq!(config.database_path, PathBuf::from("cli.db"));
@@ -265,10 +254,7 @@ mod tests {
         "#;
 
         let file: FileConfig = toml::from_str(toml_str).unwrap();
-        assert_eq!(
-            file.indexer_endpoint.as_deref(),
-            Some("http://test.com/graphql")
-        );
+        assert_eq!(file.indexer_endpoint.as_deref(), Some("http://test.com/graphql"));
         assert_eq!(file.grpc_listen.as_deref(), Some("0.0.0.0:5555"));
         assert_eq!(file.retention_hours, Some(168));
         // Unset fields remain None

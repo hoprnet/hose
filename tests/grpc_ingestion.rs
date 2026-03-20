@@ -1,17 +1,23 @@
-use hose::peer_router::PeerRouter;
-use hose::peer_tracker::PeerTracker;
-use hose::proto::common::{AnyValue, KeyValue, any_value};
-use hose::proto::resource::Resource;
-use hose::proto::trace::{ResourceSpans, ScopeSpans, Span};
-use hose::proto::trace_service::ExportTraceServiceRequest;
-use hose::proto::trace_service::trace_service_server::TraceService;
-use hose::receiver::trace::TraceReceiver;
-use hose::server::Event;
-use hose::session_tracker::SessionTracker;
-use hose::write_buffer::spawn_write_buffer;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
+use hose::{
+    peer_router::PeerRouter,
+    peer_tracker::PeerTracker,
+    proto::{
+        common::{AnyValue, KeyValue, any_value},
+        resource::Resource,
+        trace::{ResourceSpans, ScopeSpans, Span},
+        trace_service::{ExportTraceServiceRequest, trace_service_server::TraceService},
+    },
+    receiver::trace::TraceReceiver,
+    server::Event,
+    session_tracker::SessionTracker,
+    write_buffer::spawn_write_buffer,
+};
 use sqlx::SqlitePool;
-use std::time::Duration;
 use tokio::sync::broadcast;
 use tonic::Request;
 use uuid::Uuid;
@@ -122,10 +128,7 @@ async fn make_receiver() -> (TraceReceiver, SqlitePool) {
     let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
 
     // Enable foreign keys for in-memory SQLite
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await.unwrap();
 
     // Run the schema migration (may contain multiple statements)
     let schema = include_str!("../migrations/001_initial_schema.sql");
@@ -148,7 +151,7 @@ async fn make_receiver() -> (TraceReceiver, SqlitePool) {
         peer_router,
         write_buffer,
         event_tx,
-        last_trace_sample: std::sync::Arc::new(std::sync::Mutex::new(None)),
+        last_trace_sample: Arc::new(Mutex::new(None)),
     };
 
     (receiver, pool)
@@ -186,9 +189,7 @@ async fn trace_export_with_hopr_peer_id_attribute_registers_peer() {
 
     let peer_id = "16Uiu2HAmPeer2";
     // Use "hopr.peer_id" attribute instead of "service.instance.id"
-    let req = Request::new(trace_request_with_session(
-        peer_id, "ignored", "tcp", 1, "entry",
-    ));
+    let req = Request::new(trace_request_with_session(peer_id, "ignored", "tcp", 1, "entry"));
 
     let resp = receiver.export(req).await;
     assert!(resp.is_ok());
@@ -206,10 +207,7 @@ async fn trace_export_with_empty_peer_id_is_ignored() {
     let req = Request::new(trace_request_for_peer("", "test.span"));
 
     let resp = receiver.export(req).await;
-    assert!(
-        resp.is_ok(),
-        "export should succeed even with empty peer_id"
-    );
+    assert!(resp.is_ok(), "export should succeed even with empty peer_id");
     assert_eq!(
         receiver.peer_tracker.peer_count().await,
         0,
@@ -227,9 +225,7 @@ async fn trace_export_with_session_attributes_updates_session_tracker() {
 
     let peer_id = "16Uiu2HAmSessionPeer";
     let session_id = "sess-abc-123";
-    let req = Request::new(trace_request_with_session(
-        peer_id, session_id, "tcp", 3, "entry",
-    ));
+    let req = Request::new(trace_request_with_session(peer_id, session_id, "tcp", 3, "entry"));
 
     let resp = receiver.export(req).await;
     assert!(resp.is_ok());
@@ -246,10 +242,7 @@ async fn trace_export_with_session_attributes_updates_session_tracker() {
     assert_eq!(session.hop_count, 3);
     assert_eq!(session.participants.len(), 1);
     assert_eq!(session.participants[0].peer_id, peer_id);
-    assert_eq!(
-        session.participants[0].role,
-        hose::types::SessionRole::Entry
-    );
+    assert_eq!(session.participants[0].role, hose::types::SessionRole::Entry);
 }
 
 #[tokio::test]
@@ -315,11 +308,10 @@ async fn retained_trace_is_written_to_database() {
     );
 
     // Verify the written record references the correct debug session and peer
-    let row: (String, String) =
-        sqlx::query_as("SELECT debug_session_id, peer_id FROM telemetry_spans LIMIT 1")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let row: (String, String) = sqlx::query_as("SELECT debug_session_id, peer_id FROM telemetry_spans LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
 
     assert_eq!(row.0, debug_session_id.to_string());
     assert_eq!(row.1, peer_id);

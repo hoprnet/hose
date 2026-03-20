@@ -1,53 +1,59 @@
 [package]
-name = "hose"
-version = "0.1.0"
-edition = "2024"
 description = "HOPR Session Explorer - debugging and diagnostic tool for the HOPR network"
+edition     = "2024"
+name        = "hose"
+version     = "0.1.0"
 
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
 # gRPC server (OTLP receiver)
-tonic = "0.12"
-prost = "0.13"
+prost       = "0.13"
 prost-types = "0.13"
+tonic       = "0.12"
 
 # HTTP server
-axum = { version = "0.8", features = ["macros"] }
-tower = "0.5"
+axum       = { version = "0.8", features = ["macros"] }
+tower      = "0.5"
 tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
 
 # Database
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
 
 # OpenTelemetry proto types
-opentelemetry-proto = { version = "0.27", features = ["gen-tonic", "trace", "metrics", "logs", "with-serde"] }
+opentelemetry-proto = { version = "0.27", features = [
+  "gen-tonic",
+  "logs",
+  "metrics",
+  "trace",
+  "with-serde",
+] }
 
 # Configuration
 clap = { version = "4", features = ["derive", "env"] }
 toml = "0.8"
 
 # Serialization
-serde = { version = "1", features = ["derive"] }
+serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Logging and tracing
-tracing = "0.1"
+tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # GraphQL client (for Blokli indexer)
 reqwest = { version = "0.12", features = ["json"] }
 
 # SSE streaming
+futures      = "0.3"
 tokio-stream = { version = "0.1", features = ["sync"] }
-futures = "0.3"
 
 # Utilities
-chrono = { version = "0.4", features = ["serde"] }
-hex = "0.4"
-uuid = { version = "1", features = ["v4", "serde"] }
+chrono    = { version = "0.4", features = ["serde"] }
+hex       = "0.4"
 thiserror = "2"
+uuid      = { version = "1", features = ["serde", "v4"] }
 
 # HTML templating (server-rendered pages)
 askama = "0.13"

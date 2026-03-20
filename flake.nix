@@ -205,6 +205,9 @@
               # ReScript build output (copied into static/js/ by build)
               "static/js/"
 
+              # Helm templates (contain Go template syntax that yamlfmt can't parse)
+              "charts/hose/templates/*"
+
               # beads issue tracker
               ".beads/"
             ];

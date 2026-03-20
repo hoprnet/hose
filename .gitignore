@@ -35,3 +35,4 @@ lib/
 static/js/*.mjs
 static/js/rescript/
 result
+.pre-commit-config.yaml

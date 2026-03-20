@@ -76,10 +76,7 @@ pub async fn query_channels(
 }
 
 /// Query all channels for a given peer (as source or destination).
-pub async fn query_peer_channels(
-    client: &BlokliClient,
-    key_id: &str,
-) -> Result<Vec<ChannelData>, BlokliError> {
+pub async fn query_peer_channels(client: &BlokliClient, key_id: &str) -> Result<Vec<ChannelData>, BlokliError> {
     let query = r#"query($keyId: String!) {
         channels(where: { or: [{ source: $keyId }, { destination: $keyId }] }) {
             id

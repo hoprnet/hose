@@ -1,8 +1,11 @@
-use hose::db::debug_sessions::{
-    create_debug_session, delete_expired_sessions, end_debug_session, get_debug_session,
-    list_debug_sessions,
+use std::time::Duration;
+
+use hose::{
+    db::debug_sessions::{
+        create_debug_session, delete_expired_sessions, end_debug_session, get_debug_session, list_debug_sessions,
+    },
+    types::DebugSessionStatus,
 };
-use hose::types::DebugSessionStatus;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -14,10 +17,7 @@ async fn setup_db() -> SqlitePool {
         .await
         .unwrap();
     // Enable foreign keys for cascade deletes
-    sqlx::query("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query("PRAGMA foreign_keys = ON").execute(&pool).await.unwrap();
     pool
 }
 
@@ -26,9 +26,7 @@ async fn create_session_stores_with_correct_fields() {
     let pool = setup_db().await;
     let peer_ids = vec!["peer-a".to_string(), "peer-b".to_string()];
 
-    let session = create_debug_session(&pool, "test-session", &peer_ids)
-        .await
-        .unwrap();
+    let session = create_debug_session(&pool, "test-session", &peer_ids).await.unwrap();
 
     assert_eq!(session.name, "test-session");
     assert_eq!(session.status, DebugSessionStatus::Active);
@@ -48,12 +46,10 @@ async fn create_session_stores_with_correct_fields() {
 async fn list_sessions_returns_most_recent_first() {
     let pool = setup_db().await;
 
-    let first = create_debug_session(&pool, "first", &["p1".to_string()])
-        .await
-        .unwrap();
+    let first = create_debug_session(&pool, "first", &["p1".to_string()]).await.unwrap();
 
     // Insert a small delay so created_at timestamps differ
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    tokio::time::sleep(Duration::from_millis(50)).await;
 
     let second = create_debug_session(&pool, "second", &["p2".to_string()])
         .await
@@ -69,15 +65,9 @@ async fn list_sessions_returns_most_recent_first() {
 #[tokio::test]
 async fn get_session_by_id_returns_all_fields() {
     let pool = setup_db().await;
-    let peer_ids = vec![
-        "node-1".to_string(),
-        "node-2".to_string(),
-        "node-3".to_string(),
-    ];
+    let peer_ids = vec!["node-1".to_string(), "node-2".to_string(), "node-3".to_string()];
 
-    let created = create_debug_session(&pool, "full-fields", &peer_ids)
-        .await
-        .unwrap();
+    let created = create_debug_session(&pool, "full-fields", &peer_ids).await.unwrap();
 
     let fetched = get_debug_session(&pool, created.id).await.unwrap().unwrap();
 
@@ -100,10 +90,7 @@ async fn end_session_changes_status_and_sets_ended_at() {
         .unwrap();
 
     let ended = end_debug_session(&pool, session.id).await.unwrap();
-    assert!(
-        ended,
-        "end_debug_session should return true for an active session"
-    );
+    assert!(ended, "end_debug_session should return true for an active session");
 
     let fetched = get_debug_session(&pool, session.id).await.unwrap().unwrap();
     assert_eq!(fetched.status, DebugSessionStatus::Completed);
@@ -125,10 +112,7 @@ async fn end_already_completed_session_returns_false() {
     assert!(first_end);
 
     let second_end = end_debug_session(&pool, session.id).await.unwrap();
-    assert!(
-        !second_end,
-        "ending an already-completed session should return false"
-    );
+    assert!(!second_end, "ending an already-completed session should return false");
 }
 
 #[tokio::test]
@@ -136,10 +120,7 @@ async fn get_nonexistent_session_returns_none() {
     let pool = setup_db().await;
 
     let result = get_debug_session(&pool, Uuid::new_v4()).await.unwrap();
-    assert!(
-        result.is_none(),
-        "getting a non-existent session should return None"
-    );
+    assert!(result.is_none(), "getting a non-existent session should return None");
 }
 
 #[tokio::test]
@@ -168,8 +149,5 @@ async fn delete_expired_sessions_cleans_up_completed_sessions() {
 
     // Verify the session is gone
     let fetched = get_debug_session(&pool, session.id).await.unwrap();
-    assert!(
-        fetched.is_none(),
-        "expired session should be deleted from the database"
-    );
+    assert!(fetched.is_none(), "expired session should be deleted from the database");
 }

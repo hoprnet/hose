@@ -1,4 +1,9 @@
-{ pkgs, craneLib, profile ? "release", rescriptAssets }:
+{
+  pkgs,
+  craneLib,
+  profile ? "release",
+  rescriptAssets,
+}:
 
 let
   unfilteredRoot = ./..;
@@ -25,8 +30,14 @@ let
 
     CARGO_PROFILE = cargoProfile;
 
-    nativeBuildInputs = with pkgs; [ protobuf pkg-config ];
-    buildInputs = with pkgs; [ openssl sqlite ];
+    nativeBuildInputs = with pkgs; [
+      protobuf
+      pkg-config
+    ];
+    buildInputs = with pkgs; [
+      openssl
+      sqlite
+    ];
 
     # Merge ReScript-built JS assets into static/
     preBuild = ''
@@ -39,16 +50,19 @@ let
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 in
-craneLib.buildPackage (commonArgs // {
-  inherit cargoArtifacts;
+craneLib.buildPackage (
+  commonArgs
+  // {
+    inherit cargoArtifacts;
 
-  postInstall = ''
-    mkdir -p $out/share/hose
-    cp -r static $out/share/hose/
-    cp -r migrations $out/share/hose/
-    cp -r templates $out/share/hose/
-    # Ensure all copied files are writable so crane's strip-references hook
-    # can process them without "Permission denied" on read-only Nix store files.
-    chmod -R u+w $out/share/hose/
-  '';
-})
+    postInstall = ''
+      mkdir -p $out/share/hose
+      cp -r static $out/share/hose/
+      cp -r migrations $out/share/hose/
+      cp -r templates $out/share/hose/
+      # Ensure all copied files are writable so crane's strip-references hook
+      # can process them without "Permission denied" on read-only Nix store files.
+      chmod -R u+w $out/share/hose/
+    '';
+  }
+)

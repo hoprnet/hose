@@ -1,4 +1,5 @@
-{% extends "base.html" %} {% block title %}Debug Sessions - HOSE{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Debug Sessions - HOSE{% endblock %}
+{% block content %}
 <h1>Debug Sessions</h1>
 <div class="section">
   {% if sessions.is_empty() %}
@@ -17,7 +18,9 @@
     <tbody>
       {% for session in sessions %}
       <tr>
-        <td><a href="/debug-sessions/{{ session.id }}">{{ session.name }}</a></td>
+        <td>
+          <a href="/debug-sessions/{{ session.id }}">{{ session.name }}</a>
+        </td>
         <td>
           {% match session.status %} {% when DebugSessionStatus::Active %}
           <span class="badge badge-active">Active</span>
@@ -28,7 +31,8 @@
         <td>{{ session.peer_ids.len() }}</td>
         <td>{{ session.created_at }}</td>
         <td>
-          {% match session.ended_at %} {% when Some with (ts) %} {{ ts }} {% when None %} — {% endmatch %}
+          {% match session.ended_at %} {% when Some with (ts) %} {{ ts }} {%
+          when None %} — {% endmatch %}
         </td>
       </tr>
       {% endfor %}

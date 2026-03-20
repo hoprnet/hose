@@ -1,6 +1,6 @@
+use std::{collections::HashMap, sync::Arc};
+
 use chrono::Utc;
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::types::Peer;
@@ -69,6 +69,8 @@ impl Default for PeerTracker {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
 
     #[tokio::test]
@@ -88,7 +90,7 @@ mod tests {
         let first_seen = tracker.get_peer("peer-1").await.unwrap().last_seen;
 
         // Small delay to ensure timestamp differs
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        tokio::time::sleep(Duration::from_millis(10)).await;
 
         tracker.record_seen("peer-1").await;
         let second_seen = tracker.get_peer("peer-1").await.unwrap().last_seen;

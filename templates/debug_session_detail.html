@@ -1,9 +1,8 @@
-{% extends "base.html" %} {% block title %}{{ session.name }} - HOSE{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}{{ session.name }} - HOSE{% endblock
+%} {% block content %}
 <h1>{{ session.name }}</h1>
 <div class="section detail-meta">
-  <p>
-    <strong>ID:</strong> <code>{{ session.id }}</code>
-  </p>
+  <p><strong>ID:</strong> <code>{{ session.id }}</code></p>
   <p>
     <strong>Status:</strong>
     {% match session.status %} {% when DebugSessionStatus::Active %}
@@ -15,7 +14,8 @@
   <p><strong>Created:</strong> {{ session.created_at }}</p>
   <p>
     <strong>Ended:</strong>
-    {% match session.ended_at %} {% when Some with (ts) %} {{ ts }} {% when None %} &mdash; {% endmatch %}
+    {% match session.ended_at %} {% when Some with (ts) %} {{ ts }} {% when None
+    %} &mdash; {% endmatch %}
   </p>
   <p>
     <strong>Peers:</strong>
@@ -46,13 +46,22 @@
       <tbody>
         {% for span in spans %}
         <tr>
-          <td>{% match span.operation_name %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+          <td>
+            {% match span.operation_name %}{% when Some with (v) %}{{ v }}{%
+            when None %}&mdash;{% endmatch %}
+          </td>
           <td><code>{{ span.peer_id }}</code></td>
           <td>
-            <code>{% match span.trace_id %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</code>
+            <code
+              >{% match span.trace_id %}{% when Some with (v) %}{{ v }}{% when
+              None %}&mdash;{% endmatch %}</code
+            >
           </td>
           <td>{{ span.start_time }}</td>
-          <td>{% match span.end_time %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+          <td>
+            {% match span.end_time %}{% when Some with (v) %}{{ v }}{% when None
+            %}&mdash;{% endmatch %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -81,8 +90,14 @@
         {% for metric in metrics %}
         <tr>
           <td>{{ metric.metric_name }}</td>
-          <td>{% match metric.value %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
-          <td>{% match metric.unit %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+          <td>
+            {% match metric.value %}{% when Some with (v) %}{{ v }}{% when None
+            %}&mdash;{% endmatch %}
+          </td>
+          <td>
+            {% match metric.unit %}{% when Some with (v) %}{{ v }}{% when None
+            %}&mdash;{% endmatch %}
+          </td>
           <td><code>{{ metric.peer_id }}</code></td>
           <td>{{ metric.timestamp }}</td>
         </tr>
@@ -111,8 +126,14 @@
       <tbody>
         {% for log in logs %}
         <tr>
-          <td>{% match log.severity %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
-          <td>{% match log.body %}{% when Some with (v) %}{{ v }}{% when None %}&mdash;{% endmatch %}</td>
+          <td>
+            {% match log.severity %}{% when Some with (v) %}{{ v }}{% when None
+            %}&mdash;{% endmatch %}
+          </td>
+          <td>
+            {% match log.body %}{% when Some with (v) %}{{ v }}{% when None
+            %}&mdash;{% endmatch %}
+          </td>
           <td><code>{{ log.peer_id }}</code></td>
           <td>{{ log.timestamp }}</td>
         </tr>

@@ -1,5 +1,8 @@
-use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
+
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
@@ -23,10 +26,7 @@ impl PeerRouter {
     pub async fn add_session(&self, session_id: Uuid, peer_ids: &[String]) {
         let mut routes = self.routes.write().await;
         for peer_id in peer_ids {
-            routes
-                .entry(peer_id.clone())
-                .or_default()
-                .insert(session_id);
+            routes.entry(peer_id.clone()).or_default().insert(session_id);
         }
         tracing::info!(
             session_id = %session_id,
@@ -75,10 +75,7 @@ mod tests {
     #[tokio::test]
     async fn default_routing_is_discard() {
         let router = PeerRouter::new();
-        assert!(matches!(
-            router.route("peer-1").await,
-            RoutingDecision::Discard
-        ));
+        assert!(matches!(router.route("peer-1").await, RoutingDecision::Discard));
     }
 
     #[tokio::test]
@@ -109,16 +106,11 @@ mod tests {
     async fn remove_session_reverts_to_discard() {
         let router = PeerRouter::new();
         let session_id = Uuid::new_v4();
-        router
-            .add_session(session_id, &["peer-1".to_string()])
-            .await;
+        router.add_session(session_id, &["peer-1".to_string()]).await;
 
         router.remove_session(session_id).await;
 
-        assert!(matches!(
-            router.route("peer-1").await,
-            RoutingDecision::Discard
-        ));
+        assert!(matches!(router.route("peer-1").await, RoutingDecision::Discard));
     }
 
     #[tokio::test]
@@ -166,9 +158,7 @@ mod tests {
         assert!(!router.has_retained_peers().await);
 
         let session_id = Uuid::new_v4();
-        router
-            .add_session(session_id, &["peer-1".to_string()])
-            .await;
+        router.add_session(session_id, &["peer-1".to_string()]).await;
         assert!(router.has_retained_peers().await);
 
         router.remove_session(session_id).await;

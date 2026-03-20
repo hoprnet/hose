@@ -1,8 +1,6 @@
-use axum::Json;
-use axum::extract::State;
+use axum::{Json, extract::State};
 
-use crate::server::AppState;
-use crate::types::Peer;
+use crate::{server::AppState, types::Peer};
 
 /// GET /api/peers - List all tracked peers.
 #[tracing::instrument(skip(state))]

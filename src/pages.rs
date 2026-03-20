@@ -1,12 +1,16 @@
 use askama::Template;
-use axum::extract::{Path, State};
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Response};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::{Html, IntoResponse, Response},
+};
 
-use crate::db;
-use crate::db::telemetry::{LogRow, MetricRow, PaginationParams, SpanRow};
-use crate::server::AppState;
-use crate::types::{DebugSession, DebugSessionStatus, HoprSession, Peer};
+use crate::{
+    db,
+    db::telemetry::{LogRow, MetricRow, PaginationParams, SpanRow},
+    server::AppState,
+    types::{DebugSession, DebugSessionStatus, HoprSession, Peer},
+};
 
 /// Render an Askama template into an Axum response.
 fn render_template(template: &impl Template) -> Response {
@@ -128,10 +132,7 @@ struct DebugSessionDetailTemplate {
 }
 
 /// GET /debug-sessions/:id - Detail view for a single debug session.
-pub async fn debug_session_detail(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> Response {
+pub async fn debug_session_detail(State(state): State<AppState>, Path(id): Path<String>) -> Response {
     let session_id: uuid::Uuid = match id.parse() {
         Ok(id) => id,
         Err(_) => {
@@ -157,9 +158,7 @@ pub async fn debug_session_detail(
     let logs_result = db::telemetry::query_logs(&state.db, session_id, &pagination).await;
 
     let (spans, span_count) = spans_result.map(|r| (r.items, r.total)).unwrap_or_default();
-    let (metrics, metric_count) = metrics_result
-        .map(|r| (r.items, r.total))
-        .unwrap_or_default();
+    let (metrics, metric_count) = metrics_result.map(|r| (r.items, r.total)).unwrap_or_default();
     let (logs, log_count) = logs_result.map(|r| (r.items, r.total)).unwrap_or_default();
 
     render_template(&DebugSessionDetailTemplate {
