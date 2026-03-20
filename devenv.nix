@@ -144,6 +144,24 @@ in
 
     gha-update.exec = ''"$PROJECT_ROOT/scripts/gha-update.ts" "$@"'';
     gha-update.description = "Update GitHub Actions SHA pins to latest releases (--apply to write, --major for cross-major, --help for usage)";
+
+    hose-docker-push.exec = ''
+      CONTAINER="''${1:-hose}"
+      if [ -z "$IMAGE_TARGET" ]; then
+        echo "Error: IMAGE_TARGET env var is required (e.g. ghcr.io/hopr/hose:latest)" >&2
+        exit 1
+      fi
+      echo "Building container: $CONTAINER"
+      devenv container build "$CONTAINER"
+      SKOPEO_ARGS=""
+      if [ -n "$GOOGLE_ACCESS_TOKEN" ]; then
+        SKOPEO_ARGS="--dest-registry-token=$GOOGLE_ACCESS_TOKEN"
+        echo "Using GOOGLE_ACCESS_TOKEN for registry auth"
+      fi
+      echo "Pushing $CONTAINER → $IMAGE_TARGET"
+      devenv container copy "$CONTAINER" "docker://$IMAGE_TARGET" --dest-compress $SKOPEO_ARGS
+    '';
+    hose-docker-push.description = "Build and push a container image (usage: IMAGE_TARGET=ghcr.io/hopr/hose:latest hose-docker-push [hose|hose-dev])";
   };
 
   # Shell initialization

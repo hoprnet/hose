@@ -8,31 +8,40 @@ on:
       - "charts/**"
 
 jobs:
-  build-release-image:
-    name: Build and push release image
-    runs-on: self-hosted-hoprnet-bigger
+  build-docker:
+    name: Docker ${{ matrix.architecture }}
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-image.yaml@build-docker-image-v1
+    strategy:
+      matrix:
+        include:
+          - architecture: x86_64-linux
+            command: devenv hose-docker
     permissions:
       contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
+      security-events: write
+      id-token: write
+    with:
+      source_branch: ${{ github.event.pull_request.head.ref || github.ref }}
+      version_type: "commit"
+      architecture: ${{ matrix.architecture }}
+      cachix_cache_name: "hose"
+      build_file: "Cargo.toml"
+      build_command: ${{ matrix.command }}
+      docker_image_name: "hose"
+    secrets:
+      gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+      cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Setup cachix cache
-        uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
-        env:
-          USER: runner
-        with:
-          name: hose
-
-      - name: Install devenv
-        run: command -v devenv || nix profile install --accept-flake-config github:cachix/devenv/latest
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      - name: Build release container
-        run: devenv container build hose
-
-      - name: Push release container
-        run: devenv container --registry docker://ghcr.io/ copy hose
+  build-docker-manifest:
+    name: Docker manifest
+    needs: build-docker
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-manifest.yaml@build-docker-manifest-v1
+    permissions:
+      contents: read
+    with:
+      version_type: "commit"
+      docker_image_name: "hose"
+      docker_build_version: ${{ needs.build-docker.outputs.docker_build_version }}
+      docker_debug_version: ${{ needs.build-docker.outputs.docker_debug_version }}
+    secrets:
+      gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY}}
