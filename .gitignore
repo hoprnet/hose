@@ -34,3 +34,4 @@ node_modules/
 lib/
 static/js/*.mjs
 static/js/rescript/
+result

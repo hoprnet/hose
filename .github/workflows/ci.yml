@@ -1,5 +1,4 @@
 name: CI
-
 on:
   push:
     branches:
@@ -7,7 +6,6 @@ on:
   pull_request:
     branches:
       - main
-
 jobs:
   lint:
     name: Lint
@@ -15,43 +13,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
-
       - name: Setup cachix cache
         uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
         env:
           USER: runner
         with:
           name: hose
-
-      - name: Install devenv
-        run: command -v devenv || nix profile install --accept-flake-config github:cachix/devenv/latest
-
       - name: Check formatting
-        run: devenv shell -- treefmt --fail-on-change
-
+        run: nix develop -c treefmt --fail-on-change
       - name: Run clippy
-        run: devenv shell -- cargo clippy -- -D warnings
-
+        run: nix develop -c cargo clippy -- -D warnings
   test:
     name: Test
     runs-on: self-hosted-hoprnet-bigger
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 from 19.03.2026
-
       - name: Setup cachix cache
         uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
         env:
           USER: runner
         with:
           name: hose
-
-      - name: Install devenv
-        run: command -v devenv || nix profile install --accept-flake-config github:cachix/devenv/latest
-
       - name: Run tests
-        run: devenv shell -- cargo test
-
+        run: nix develop -c cargo test
   build-dev-docker:
     name: Docker ${{ matrix.architecture }}
     uses: hoprnet/hopr-workflows/.github/workflows/build-docker-image.yaml@build-docker-image-v1
@@ -59,7 +44,7 @@ jobs:
       matrix:
         include:
           - architecture: x86_64-linux
-            command: devenv hose-docker-dev
+            command: nix run -L .#docker-hose-dev-upload-x86_64-linux
     permissions:
       contents: read
       security-events: write
@@ -75,7 +60,6 @@ jobs:
     secrets:
       gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
       cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
   build-dev-docker-manifest:
     name: Docker manifest
     needs: build-dev-docker
