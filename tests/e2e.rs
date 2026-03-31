@@ -1,3 +1,5 @@
+use std::sync::{Arc, atomic::AtomicBool};
+
 use hose::{
     config::Config,
     identity::IdentityBridge,
@@ -9,7 +11,7 @@ use hose::{
 };
 use reqwest::Client;
 use sqlx::SqlitePool;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::broadcast};
 
 /// Set up an in-memory SQLite database with the schema applied.
 async fn setup_db() -> SqlitePool {
@@ -30,6 +32,11 @@ async fn setup_db() -> SqlitePool {
 
 /// Spawn the Axum HTTP server on a random port and return the base URL and shared state.
 async fn spawn_test_server() -> (String, AppState) {
+    spawn_test_server_with_grpc_ready(true).await
+}
+
+/// Spawn the Axum HTTP server with explicit control over the gRPC readiness flag.
+async fn spawn_test_server_with_grpc_ready(grpc_ready: bool) -> (String, AppState) {
     let config = Config::default();
     let pool = setup_db().await;
 
@@ -38,15 +45,20 @@ async fn spawn_test_server() -> (String, AppState) {
     let peer_router = PeerRouter::new();
     let identity_bridge = IdentityBridge::new(None);
 
-    let state = AppState::new(
-        config,
-        pool,
+    let grpc_flag = Arc::new(AtomicBool::new(grpc_ready));
+
+    let (event_tx, _) = broadcast::channel(1024);
+    let state = AppState {
+        config: Arc::new(config),
+        db: pool,
         peer_router,
         peer_tracker,
         session_tracker,
         identity_bridge,
-        None,
-    );
+        blokli_client: None,
+        event_tx,
+        grpc_ready: grpc_flag,
+    };
 
     let router = build_router(state.clone());
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -61,18 +73,58 @@ async fn spawn_test_server() -> (String, AppState) {
 }
 
 // ---------------------------------------------------------------------------
-// Test 1: Health check endpoint returns "ok"
+// Test 1: Readiness probe returns 200 with healthy state
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
-async fn health_check_returns_ok() {
+async fn readyz_returns_ok_with_healthy_state() {
     let (base_url, _state) = spawn_test_server().await;
     let client = Client::new();
 
-    let resp = client.get(format!("{}/health", base_url)).send().await.unwrap();
+    let resp = client.get(format!("{}/readyz", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 200);
-    assert_eq!(resp.text().await.unwrap(), "ok");
+
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["status"], "ready");
+    assert_eq!(body["checks"]["database"], "ok");
+    assert_eq!(body["checks"]["grpc"], "ok");
+}
+
+// ---------------------------------------------------------------------------
+// Test 1b: Readiness probe returns 503 when gRPC is not ready
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn readyz_returns_503_when_grpc_unavailable() {
+    let (base_url, _state) = spawn_test_server_with_grpc_ready(false).await;
+    let client = Client::new();
+
+    let resp = client.get(format!("{}/readyz", base_url)).send().await.unwrap();
+
+    assert_eq!(resp.status(), 503);
+
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["status"], "not_ready");
+    assert_eq!(body["checks"]["database"], "ok");
+    assert_eq!(body["checks"]["grpc"], "unavailable");
+}
+
+// ---------------------------------------------------------------------------
+// Test 1c: Liveness probe returns 200
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn livez_returns_ok() {
+    let (base_url, _state) = spawn_test_server().await;
+    let client = Client::new();
+
+    let resp = client.get(format!("{}/livez", base_url)).send().await.unwrap();
+
+    assert_eq!(resp.status(), 200);
+
+    let body: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(body["status"], "live");
 }
 
 // ---------------------------------------------------------------------------

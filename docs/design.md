@@ -366,6 +366,8 @@ using the same peer identifiers visible in the telemetry stream.
 
 | Purpose              | Description                                                                    |
 | -------------------- | ------------------------------------------------------------------------------ |
+| Readiness probe      | `GET /readyz` - 200 when DB and gRPC are healthy, 503 otherwise                |
+| Liveness probe       | `GET /livez` - 200 if the HTTP server can respond                              |
 | Peer listing         | All tracked peers                                                              |
 | HOPR session listing | Active HOPR sessions with participating peers and metadata                     |
 | Debug session CRUD   | Create, read, update status of debug sessions                                  |
@@ -412,7 +414,20 @@ Clients that fall behind drop events rather than buffering unboundedly.
 - Listens on two ports: one for gRPC (OTLP), one for HTTP (web UI + API)
 - No external services required (database is embedded)
 
-### 8.2 Configuration Surface
+### 8.2 Health Probes
+
+HOSE exposes two HTTP endpoints for orchestration systems (Kubernetes, Docker,
+etc.):
+
+- **Readiness** (`GET /readyz`) — returns 200 with a JSON body when the SQLite
+  database is reachable and the gRPC OTLP listener has bound. Returns 503 with
+  per-check status when any subsystem is unavailable. Orchestrators should use
+  this to decide whether to route traffic to the instance.
+- **Liveness** (`GET /livez`) — returns 200 if the HTTP server can respond at
+  all. A failure here indicates the process is deadlocked or unresponsive and
+  should be restarted.
+
+### 8.3 Configuration Surface
 
 - **Indexer endpoint** — for blockchain channel data from Blokli
 - **Listen addresses** — for the gRPC and HTTP servers
@@ -420,7 +435,7 @@ Clients that fall behind drop events rather than buffering unboundedly.
 - **Retention period** — how long completed session data is kept before cleanup
 - **Write buffer tuning** — batch size and flush interval for the ingestion path
 
-### 8.3 Data Retention
+### 8.4 Data Retention
 
 - Peer and HOPR session registries: in-memory only, lost on restart
 - Debug session data: persisted in the embedded database, cleaned up
@@ -428,7 +443,7 @@ Clients that fall behind drop events rather than buffering unboundedly.
 - No long-term archival — HOSE is a debugging tool, not an observability
   platform
 
-### 8.4 Error Handling Philosophy
+### 8.5 Error Handling Philosophy
 
 - **Ingestion path**: best-effort. The gRPC receiver always returns success to
   the collector, even if individual records are dropped due to buffer pressure
@@ -441,7 +456,7 @@ Clients that fall behind drop events rather than buffering unboundedly.
 - **External API calls**: failures in indexer queries are surfaced to the
   operator but do not affect the core ingestion/storage path.
 
-### 8.5 Concurrency Model
+### 8.6 Concurrency Model
 
 - The gRPC and HTTP servers run concurrently in the same process, sharing state
   via reference-counted pointers

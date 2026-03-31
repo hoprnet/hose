@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
-use axum::{Router, routing};
+use axum::{Json, Router, extract::State, http::StatusCode, routing};
 use sqlx::SqlitePool;
 use tokio::{net::TcpListener, sync::broadcast};
 use tower_http::{services::ServeDir, trace::TraceLayer};
@@ -22,6 +25,8 @@ pub struct AppState {
     pub blokli_client: Option<BlokliClient>,
     /// Broadcast channel for SSE live events.
     pub event_tx: broadcast::Sender<Event>,
+    /// Set to `true` once the gRPC OTLP listener has bound successfully.
+    pub grpc_ready: Arc<AtomicBool>,
 }
 
 /// Events pushed to connected browsers via SSE.
@@ -53,28 +58,6 @@ pub enum Event {
 }
 
 impl AppState {
-    pub fn new(
-        config: Config,
-        db: SqlitePool,
-        peer_router: PeerRouter,
-        peer_tracker: PeerTracker,
-        session_tracker: SessionTracker,
-        identity_bridge: IdentityBridge,
-        blokli_client: Option<BlokliClient>,
-    ) -> Self {
-        let (event_tx, _) = broadcast::channel(1024);
-        Self {
-            config: Arc::new(config),
-            db,
-            peer_router,
-            peer_tracker,
-            session_tracker,
-            identity_bridge,
-            blokli_client,
-            event_tx,
-        }
-    }
-
     /// Emit an event to all connected SSE clients. Drops silently if no receivers.
     pub fn emit(&self, event: Event) {
         let _ = self.event_tx.send(event);
@@ -91,8 +74,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/debug-sessions", routing::get(crate::pages::debug_sessions))
         .route("/debug-sessions/{id}", routing::get(crate::pages::debug_session_detail))
         .route("/inspector", routing::get(crate::pages::trace_inspector))
+        // Health probes
+        .route("/readyz", routing::get(readyz))
+        .route("/livez", routing::get(livez))
         // JSON API routes
-        .route("/health", routing::get(health_check))
         .route("/api/peers", routing::get(crate::api::peers::list_peers))
         .route("/api/sessions", routing::get(crate::api::sessions::list_sessions))
         .route(
@@ -119,9 +104,42 @@ pub fn build_router(state: AppState) -> Router {
         .layer(TraceLayer::new_for_http())
 }
 
-/// Health check endpoint.
-async fn health_check() -> &'static str {
-    "ok"
+/// Readiness probe. Returns 200 when the database is reachable and the gRPC
+/// listener has bound. Returns 503 with details when any check fails.
+async fn readyz(State(state): State<AppState>) -> (StatusCode, Json<serde_json::Value>) {
+    let db_ok = sqlx::query_scalar::<_, i32>("SELECT 1")
+        .fetch_one(&state.db)
+        .await
+        .is_ok();
+
+    let grpc_ok = state.grpc_ready.load(Ordering::Relaxed);
+
+    let db_status = if db_ok { "ok" } else { "unavailable" };
+    let grpc_status = if grpc_ok { "ok" } else { "unavailable" };
+
+    let status_code = if db_ok && grpc_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    let label = if db_ok && grpc_ok { "ready" } else { "not_ready" };
+
+    (
+        status_code,
+        Json(serde_json::json!({
+            "status": label,
+            "checks": {
+                "database": db_status,
+                "grpc": grpc_status,
+            }
+        })),
+    )
+}
+
+/// Liveness probe. Returns 200 if the HTTP server can respond at all.
+async fn livez() -> Json<serde_json::Value> {
+    Json(serde_json::json!({"status": "live"}))
 }
 
 /// Start the HTTP server on the configured address.

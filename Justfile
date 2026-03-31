@@ -1,7 +1,11 @@
 # HOSE development recipes
 
+# Show available recipes
+default:
+    @just --list
+
 # Compile ReScript modules and copy to static/js/
-hose-res-build:
+res-build:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building ReScript modules..."
@@ -18,7 +22,7 @@ hose-res-build:
     echo "ReScript build complete -> static/js/"
 
 # Watch ReScript files and rebuild on change
-hose-res-watch:
+res-watch:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Watching ReScript modules (Ctrl+C to stop)..."
@@ -33,8 +37,8 @@ hose-res-watch:
         fi
     done
 
-# Build ReScript, then build and run HOSE with sensible dev defaults
-hose-dev:
+# Build ReScript then start HOSE dev server (HTTP :8080, gRPC :4317)
+dev:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building ReScript modules..."
@@ -56,7 +60,7 @@ hose-dev:
     cargo run
 
 # Send synthetic OTLP traces to the local HOSE instance
-hose-gen *ARGS:
+gen *ARGS:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Starting OTLP trace generator -> localhost:4317..."

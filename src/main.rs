@@ -1,5 +1,8 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 
@@ -21,7 +24,7 @@ use hose::{
     write_buffer::spawn_write_buffer,
 };
 use tokio::{net::TcpListener, sync::broadcast};
-use tonic::transport::Server;
+use tonic::transport::{Server, server::TcpIncoming};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -71,16 +74,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Create the identity bridge for blockchain key <-> peer ID lookups.
     let identity_bridge = IdentityBridge::new(blokli_client.clone());
 
+    // Shared flag set to true once the gRPC listener binds successfully.
+    let grpc_ready = Arc::new(AtomicBool::new(false));
+
     // Build the shared application state (includes an SSE broadcast channel).
-    let state = AppState::new(
-        config.clone(),
-        pool.clone(),
-        peer_router.clone(),
-        peer_tracker.clone(),
-        session_tracker.clone(),
+    let (event_tx, _) = broadcast::channel(1024);
+    let state = AppState {
+        config: Arc::new(config.clone()),
+        db: pool.clone(),
+        peer_router: peer_router.clone(),
+        peer_tracker: peer_tracker.clone(),
+        session_tracker: session_tracker.clone(),
         identity_bridge,
         blokli_client,
-    );
+        event_tx,
+        grpc_ready: grpc_ready.clone(),
+    };
 
     // Construct gRPC service receivers sharing the same tracking state.
     let event_tx = state.event_tx.clone();
@@ -108,15 +117,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         event_tx,
     };
 
-    // Build the gRPC server.
+    // Build the gRPC server. Bind the listener first so we can signal readiness.
     let grpc_addr = config.grpc_listen_addr;
+    let grpc_listener = TcpListener::bind(grpc_addr).await?;
+    tracing::info!(%grpc_addr, "gRPC OTLP receiver listening");
+    grpc_ready.store(true, Ordering::Relaxed);
+
+    let grpc_incoming = TcpIncoming::from_listener(grpc_listener, true, None)?;
     let grpc_server = Server::builder()
         .add_service(TraceServiceServer::new(trace_receiver))
         .add_service(MetricsServiceServer::new(metrics_receiver))
         .add_service(LogsServiceServer::new(logs_receiver))
-        .serve(grpc_addr);
-
-    tracing::info!(%grpc_addr, "gRPC OTLP receiver listening");
+        .serve_with_incoming(grpc_incoming);
 
     // Build the HTTP server.
     let http_addr = config.http_listen_addr;

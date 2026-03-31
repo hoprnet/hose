@@ -83,12 +83,13 @@ resources: {}
 
 readinessProbe:
   httpGet:
-    path: /
+    path: /readyz
     port: http
   initialDelaySeconds: 5
   periodSeconds: 10
 livenessProbe:
-  tcpSocket:
+  httpGet:
+    path: /livez
     port: http
   initialDelaySeconds: 10
   periodSeconds: 20
