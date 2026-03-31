@@ -2,7 +2,7 @@
 description = "HOPR Session Explorer - debugging and diagnostic tool for the HOPR network"
 edition     = "2024"
 name        = "hose"
-version     = "0.1.0"
+version     = "0.2.0"
 
 [dependencies]
 # Async runtime
