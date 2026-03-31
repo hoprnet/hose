@@ -61,3 +61,12 @@ Create the name of the service account to use.
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Extract the port number from a "host:port" listen address string.
+Example: {{ include "hose.port" "0.0.0.0:8080" }} => 8080
+*/}}
+{{- define "hose.port" -}}
+{{- $parts := splitList ":" . -}}
+{{- last $parts -}}
+{{- end -}}

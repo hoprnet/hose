@@ -301,6 +301,7 @@
               nodejs_22
               just
               ast-grep
+              kubernetes-helm
             ];
           };
         };

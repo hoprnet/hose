@@ -62,6 +62,16 @@ hose-gen *ARGS:
     echo "Starting OTLP trace generator -> localhost:4317..."
     cargo run --example trace_generator -- {{ARGS}}
 
+# Lint and render Helm chart templates
+helm-test *ARGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Linting chart..."
+    helm lint charts/hose/ {{ARGS}}
+    echo ""
+    echo "Rendering templates..."
+    helm template test charts/hose/ {{ARGS}}
+
 # Update GitHub Actions SHA pins to latest releases
 gha-update *ARGS:
     #!/usr/bin/env bash
