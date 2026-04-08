@@ -8,7 +8,7 @@ on:
       - "charts/**"
 jobs:
   release:
-    runs-on: self-hosted-hoprnet-bigger
+    runs-on: depot-ubuntu-24.04
     permissions:
       contents: write
     steps:
