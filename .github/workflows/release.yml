@@ -10,7 +10,7 @@ on:
 jobs:
   build-docker:
     name: Docker ${{ matrix.architecture }}
-    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-image.yaml@build-docker-image-v1
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-image.yaml@tb/202604-update-version
     strategy:
       matrix:
         include:
@@ -35,7 +35,7 @@ jobs:
   build-docker-manifest:
     name: Docker manifest
     needs: build-docker
-    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-manifest.yaml@build-docker-manifest-v1
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-manifest.yaml@tb/202604-update-version
     permissions:
       contents: read
     with:
@@ -43,5 +43,6 @@ jobs:
       docker_image_name: "hose"
       docker_build_version: ${{ needs.build-docker.outputs.docker_build_version }}
       docker_debug_version: ${{ needs.build-docker.outputs.docker_debug_version }}
+      runner: depot-ubuntu-24.04
     secrets:
       gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
