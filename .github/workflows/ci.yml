@@ -76,6 +76,5 @@ jobs:
       docker_image_name: "hose-dev"
       docker_build_version: ${{ needs.build-dev-docker.outputs.docker_build_version }}
       docker_debug_version: ${{ needs.build-dev-docker.outputs.docker_debug_version }}
-      runner: depot-ubuntu-24.04
     secrets:
       gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
