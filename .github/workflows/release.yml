@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
     paths-ignore:
       - "charts/**"
 jobs:
@@ -20,7 +22,7 @@ jobs:
       id-token: write
     with:
       source_branch: ${{ github.event.pull_request.head.ref || github.ref }}
-      version_type: "commit"
+      version_type: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'commit' }}
       architecture: ${{ matrix.architecture }}
       cachix_cache_name: "hose"
       build_file: "Cargo.toml"
@@ -36,7 +38,7 @@ jobs:
     permissions:
       contents: read
     with:
-      version_type: "commit"
+      version_type: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'commit' }}
       docker_image_name: "hose"
       docker_build_version: ${{ needs.build-docker.outputs.docker_build_version }}
       docker_debug_version: ${{ needs.build-docker.outputs.docker_debug_version }}
