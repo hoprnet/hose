@@ -46,3 +46,25 @@ jobs:
       runner: depot-ubuntu-24.04
     secrets:
       gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+  tag-latest:
+    name: Tag latest
+    if: github.ref == 'refs/heads/main'
+    needs: [build-docker, build-docker-manifest]
+    runs-on: depot-ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      REGISTRY: europe-west3-docker.pkg.dev/hoprassociation/docker-images
+    steps:
+      - name: Setup GCP
+        uses: hoprnet/hopr-workflows/actions/setup-gcp@setup-gcp-v2
+        with:
+          google_credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+          login_artifact_registry: 'true'
+          install_sdk: 'false'
+      - name: Tag as latest
+        run: |
+          docker buildx imagetools create \
+            --tag "$REGISTRY/hose:latest" \
+            "$REGISTRY/hose:${{ needs.build-docker.outputs.docker_build_version }}"
