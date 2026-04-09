@@ -1,6 +1,9 @@
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use axum::{Json, Router, extract::State, http::StatusCode, routing};
@@ -68,12 +71,13 @@ impl AppState {
 pub fn build_router(state: AppState) -> Router {
     // Resolve the static directory relative to the binary location so that
     // serving works regardless of the process working directory (e.g. inside
-    // a Nix-built container where no WORKDIR is set).
+    // a Nix-built container where no WORKDIR is set). Falls back to a
+    // CWD-relative path for local development and tests.
     let static_dir = std::env::current_exe()
-        .expect("cannot determine executable path")
-        .parent()
-        .expect("executable has no parent directory")
-        .join("static");
+        .ok()
+        .and_then(|exe| exe.parent().map(|p| p.join("static")))
+        .filter(|p| p.is_dir())
+        .unwrap_or_else(|| PathBuf::from("static"));
 
     Router::new()
         // Server-rendered HTML pages
