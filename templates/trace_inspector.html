@@ -6,7 +6,16 @@
 </p>
 
 <div class="section">
-  <div id="status" class="sse-status">Connecting...</div>
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+    <div id="status" class="sse-status">Connecting...</div>
+    <button
+      id="pause-btn"
+      class="badge badge-active"
+      style="cursor: pointer; border: none; font-size: 13px"
+    >
+      Pause
+    </button>
+  </div>
   <table>
     <thead>
       <tr>

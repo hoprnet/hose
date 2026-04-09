@@ -48,6 +48,9 @@ let hideElement = (el: element): unit => {
   setDisplay(getStyle(el), "none")
 }
 
+@send
+external addClickListener: (element, @as("click") _, 'event => unit) => unit = "addEventListener"
+
 // Escape HTML by creating a text node and reading its parent's innerHTML.
 let escapeHtml = (text: string): string => {
   let div = createElement(doc, "div")

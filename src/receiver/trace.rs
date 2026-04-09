@@ -56,6 +56,7 @@ impl TraceService for TraceReceiver {
         request: Request<ExportTraceServiceRequest>,
     ) -> Result<Response<ExportTraceServiceResponse>, Status> {
         let req = request.into_inner();
+        tracing::trace!(resource_spans = ?req.resource_spans, "raw trace export request");
 
         for resource_spans in &req.resource_spans {
             // Extract peer ID from resource attributes
