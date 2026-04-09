@@ -201,6 +201,61 @@ async fn trace_export_with_hopr_peer_id_attribute_registers_peer() {
 }
 
 #[tokio::test]
+async fn hopr_peer_id_takes_priority_over_service_instance_id() {
+    let (receiver, _pool) = make_receiver().await;
+
+    let hopr_id = "16Uiu2HAmRealPeer";
+    let uuid = "e6f1ada8-a050-4062-90f6-2bc28bd6c40b";
+    // Send a request with both attributes; hopr.peer_id should win.
+    let req = Request::new(ExportTraceServiceRequest {
+        resource_spans: vec![ResourceSpans {
+            resource: Some(Resource {
+                attributes: vec![
+                    string_kv("service.instance.id", uuid),
+                    string_kv("hopr.peer_id", hopr_id),
+                ],
+                dropped_attributes_count: 0,
+            }),
+            scope_spans: vec![ScopeSpans {
+                scope: None,
+                spans: vec![Span {
+                    trace_id: vec![9; 16],
+                    span_id: vec![10; 8],
+                    parent_span_id: vec![],
+                    name: "test.priority".to_string(),
+                    kind: 0,
+                    start_time_unix_nano: 1_000_000_000,
+                    end_time_unix_nano: 2_000_000_000,
+                    attributes: vec![],
+                    dropped_attributes_count: 0,
+                    events: vec![],
+                    dropped_events_count: 0,
+                    links: vec![],
+                    dropped_links_count: 0,
+                    status: None,
+                    flags: 0,
+                    trace_state: String::new(),
+                }],
+                schema_url: String::new(),
+            }],
+            schema_url: String::new(),
+        }],
+    });
+
+    let resp = receiver.export(req).await;
+    assert!(resp.is_ok());
+
+    assert!(
+        receiver.peer_tracker.is_tracked(hopr_id).await,
+        "peer should be tracked under hopr.peer_id, not service.instance.id"
+    );
+    assert!(
+        !receiver.peer_tracker.is_tracked(uuid).await,
+        "UUID from service.instance.id should not be used as peer ID"
+    );
+}
+
+#[tokio::test]
 async fn trace_export_with_empty_peer_id_is_ignored() {
     let (receiver, _pool) = make_receiver().await;
 

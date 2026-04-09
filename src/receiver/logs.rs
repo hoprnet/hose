@@ -27,29 +27,10 @@ impl LogsService for LogsReceiver {
         let req = request.into_inner();
 
         for resource_logs in &req.resource_logs {
-            let peer_id = resource_logs
-                .resource
-                .as_ref()
-                .and_then(|r| {
-                    r.attributes.iter().find_map(|attr| {
-                        if attr.key == "service.instance.id" || attr.key == "hopr.peer_id" {
-                            attr.value.as_ref().and_then(|v| {
-                                v.value.as_ref().map(|val| match val {
-                                    crate::proto::common::any_value::Value::StringValue(s) => s.clone(),
-                                    _ => String::new(),
-                                })
-                            })
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .unwrap_or_default();
-
-            if peer_id.is_empty() {
+            let Some(peer_id) = super::extract_peer_id(resource_logs.resource.as_ref()) else {
                 tracing::warn!("logs received with empty peer_id, skipping resource_logs");
                 continue;
-            }
+            };
 
             tracing::debug!(peer_id = %peer_id, "logs export received");
 
