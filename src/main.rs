@@ -24,7 +24,10 @@ use hose::{
     write_buffer::spawn_write_buffer,
 };
 use tokio::{net::TcpListener, sync::broadcast};
-use tonic::transport::{Server, server::TcpIncoming};
+use tonic::{
+    codec::CompressionEncoding,
+    transport::{Server, server::TcpIncoming},
+};
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -125,9 +128,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let grpc_incoming = TcpIncoming::from_listener(grpc_listener, true, None)?;
     let grpc_server = Server::builder()
-        .add_service(TraceServiceServer::new(trace_receiver))
-        .add_service(MetricsServiceServer::new(metrics_receiver))
-        .add_service(LogsServiceServer::new(logs_receiver))
+        .add_service(
+            TraceServiceServer::new(trace_receiver)
+                .accept_compressed(CompressionEncoding::Gzip)
+                .send_compressed(CompressionEncoding::Gzip),
+        )
+        .add_service(
+            MetricsServiceServer::new(metrics_receiver)
+                .accept_compressed(CompressionEncoding::Gzip)
+                .send_compressed(CompressionEncoding::Gzip),
+        )
+        .add_service(
+            LogsServiceServer::new(logs_receiver)
+                .accept_compressed(CompressionEncoding::Gzip)
+                .send_compressed(CompressionEncoding::Gzip),
+        )
         .serve_with_incoming(grpc_incoming);
 
     // Build the HTTP server.

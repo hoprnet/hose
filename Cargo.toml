@@ -11,7 +11,7 @@ tokio = { version = "1", features = ["full"] }
 # gRPC server (OTLP receiver)
 prost       = "0.13"
 prost-types = "0.13"
-tonic       = "0.12"
+tonic       = { version = "0.12", features = ["gzip"] }
 
 # HTTP server
 axum       = { version = "0.8", features = ["macros"] }
