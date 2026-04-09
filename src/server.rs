@@ -66,6 +66,15 @@ impl AppState {
 
 /// Build the Axum router with all routes and middleware.
 pub fn build_router(state: AppState) -> Router {
+    // Resolve the static directory relative to the binary location so that
+    // serving works regardless of the process working directory (e.g. inside
+    // a Nix-built container where no WORKDIR is set).
+    let static_dir = std::env::current_exe()
+        .expect("cannot determine executable path")
+        .parent()
+        .expect("executable has no parent directory")
+        .join("static");
+
     Router::new()
         // Server-rendered HTML pages
         .route("/", routing::get(crate::pages::dashboard))
@@ -99,7 +108,7 @@ pub fn build_router(state: AppState) -> Router {
         // SSE live event stream
         .route("/api/events", routing::get(crate::api::events::event_stream))
         // Static file serving (CSS, JS)
-        .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/static", ServeDir::new(static_dir))
         .with_state(state)
         .layer(TraceLayer::new_for_http())
 }
