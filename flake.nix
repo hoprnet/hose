@@ -101,6 +101,7 @@
               cp -r ${hosePkg}/share/hose/static $out/app/
               cp -r ${hosePkg}/share/hose/migrations $out/app/
               cp -r ${hosePkg}/share/hose/templates $out/app/
+              mkdir -p $out/etc
               cat > $out/etc/os-release <<EOF
               ID=nixos
               NAME="NixOS"
