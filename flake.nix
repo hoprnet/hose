@@ -101,6 +101,12 @@
               cp -r ${hosePkg}/share/hose/static $out/app/
               cp -r ${hosePkg}/share/hose/migrations $out/app/
               cp -r ${hosePkg}/share/hose/templates $out/app/
+              cat > $out/etc/os-release <<EOF
+              ID=nixos
+              NAME="NixOS"
+              VERSION_ID="unstable"
+              PRETTY_NAME="NixOS (Nix-built container)"
+              EOF
             '';
 
           # Docker images need Linux packages, even when building on macOS
