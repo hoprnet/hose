@@ -48,9 +48,8 @@ helm install hose charts/hose \
 
 | Key                   | Type   | Default         | Description                              |
 | --------------------- | ------ | --------------- | ---------------------------------------- |
-| `service.type`        | string | `ClusterIP`     | Service type                             |
-| `service.httpPort`    | int    | `8080`          | Service port for the web UI and REST API |
-| `service.grpcPort`    | int    | `4317`          | Service port for OTLP gRPC telemetry     |
+| `service.type`        | string | `ClusterIP`     | Service type for web                     |
+| `service.grpcType`    | string | `LoadBalancer`  | Service type for ingestor                |
 | `ingress.enabled`     | bool   | `false`         | Enable Ingress for the web UI            |
 | `ingress.className`   | string | `""`            | Ingress class name                       |
 | `ingress.annotations` | object | `{}`            | Ingress annotations                      |

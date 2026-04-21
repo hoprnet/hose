@@ -1,19 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "hose.fullname" . }}
+  name: {{ include "hose.fullname" . }}-web
   labels:
     {{- include "hose.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: http
-      port: {{ .Values.service.httpPort }}
-      targetPort: http
-      protocol: TCP
-    - name: grpc
-      port: {{ .Values.service.grpcPort }}
-      targetPort: grpc
+    - name: web
+      port: {{ include "hose.port" .Values.config.httpListen | int }}
+      targetPort: web
       protocol: TCP
   selector:
     {{- include "hose.selectorLabels" . | nindent 4 }}
