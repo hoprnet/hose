@@ -3,6 +3,16 @@ entries:
   hose:
   - apiVersion: v2
     appVersion: 0.2.0
+    created: "2026-04-21T13:48:29.888692103Z"
+    description: HOPR Session Explorer — OTLP telemetry receiver with web UI
+    digest: fd47844e55359329ff723c1f0c6ae411a1583312e17e6840287f7794045472c1
+    name: hose
+    type: application
+    urls:
+    - https://github.com/hoprnet/hose/releases/download/helm-chart-hose-0.2.1/hose-0.2.1.tgz
+    version: 0.2.1
+  - apiVersion: v2
+    appVersion: 0.2.0
     created: "2026-03-31T10:12:47.414019508Z"
     description: HOPR Session Explorer — OTLP telemetry receiver with web UI
     digest: 121baf3f317b72470c46d2d910dc4df52fa298564cf97773957b851891d4fd25
@@ -21,4 +31,4 @@ entries:
     urls:
     - https://github.com/hoprnet/hose/releases/download/helm-chart-hose-0.1.0/hose-0.1.0.tgz
     version: 0.1.0
-generated: "2026-03-31T10:12:47.414022905Z"
+generated: "2026-04-21T13:48:29.888696583Z"
