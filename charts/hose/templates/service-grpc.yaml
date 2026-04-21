@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hose.fullname" . }}-grpc
+  labels:
+    {{- include "hose.labels" . | nindent 4 }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ required "A valid ingress.grpcHostname entry required!" .Values.ingress.grpcHostname }}
+spec:
+  type: {{ .Values.service.grpcType }}
+  ports:
+    - name: grpc
+      port: {{ include "hose.port" .Values.config.grpcListen | int }}
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    {{- include "hose.selectorLabels" . | nindent 4 }}

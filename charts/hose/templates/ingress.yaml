@@ -33,9 +33,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "hose.fullname" $ }}
+                name: {{ include "hose.fullname" $ }}-web
                 port:
-                  name: http
+                  name: web
           {{- end }}
     {{- end }}
 {{- end }}

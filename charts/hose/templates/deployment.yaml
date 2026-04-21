@@ -42,7 +42,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: http
+            - name: web
               containerPort: {{ include "hose.port" .Values.config.httpListen | int }}
               protocol: TCP
             - name: grpc

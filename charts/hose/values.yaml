@@ -19,12 +19,12 @@ podAnnotations: {}
 podLabels: {}
 service:
   type: ClusterIP
-  httpPort: 8080
-  grpcPort: 4317
+  grpcType: LoadBalancer
 ingress:
   enabled: false
   className: ""
   annotations: {}
+  grpcHostname: "hose-ingestor.local"
   hosts:
     - host: hose.local
       paths:
@@ -84,13 +84,13 @@ resources: {}
 readinessProbe:
   httpGet:
     path: /readyz
-    port: http
+    port: web
   initialDelaySeconds: 5
   periodSeconds: 10
 livenessProbe:
   httpGet:
     path: /livez
-    port: http
+    port: web
   initialDelaySeconds: 10
   periodSeconds: 20
 nodeSelector: {}
