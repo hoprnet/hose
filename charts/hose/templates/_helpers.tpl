@@ -2,24 +2,24 @@
 Expand the name of the chart.
 */}}
 {{- define "hose.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default .Chart.Name .Values.nameOverride | trunc 59 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
-Truncated at 63 characters because some Kubernetes name fields are limited to this.
+Truncated at 59 characters because some Kubernetes name fields are limited to this.
 If fullnameOverride is provided, use that. Otherwise, if the release name contains
 the chart name, use the release name; otherwise combine them.
 */}}
 {{- define "hose.fullname" -}}
 {{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- .Values.fullnameOverride | trunc 59 | trimSuffix "-" }}
 {{- else }}
 {{- $name := default .Chart.Name .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- .Release.Name | trunc 59 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Release.Name $name | trunc 59 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -28,7 +28,7 @@ the chart name, use the release name; otherwise combine them.
 Create chart name and version as used by the chart label.
 */}}
 {{- define "hose.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 59 | trimSuffix "-" }}
 {{- end }}
 
 {{/*

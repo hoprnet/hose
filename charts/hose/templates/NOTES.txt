@@ -11,18 +11,11 @@ HOPR Session Explorer (hose) has been deployed.
   echo "http://$NODE_IP:$NODE_PORT"
 {{- else if contains "LoadBalancer" .Values.service.type }}
   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-  kubectl get --namespace {{ .Release.Namespace }} svc {{ include "hose.fullname" . }} -w
+  kubectl get --namespace {{ .Release.Namespace }} svc {{ include "hose.fullname" . }}-web
 {{- else }}
-  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "hose.fullname" . }} 8080:{{ include "hose.port" .Values.config.httpListen | int }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "hose.fullname" . }}-web 8080:{{ include "hose.port" .Values.config.httpListen | int }}
   Then open: http://localhost:8080
 {{- end }}
 
 2. Send OTLP telemetry (gRPC) to:
-{{- if contains "ClusterIP" .Values.service.type }}
-  {{ include "hose.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ include "hose.port" .Values.config.grpcListen | int }}
-
-  For local testing:
-  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "hose.fullname" . }} 4317:{{ include "hose.port" .Values.config.grpcListen | int }}
-{{- else }}
-  Port {{ include "hose.port" .Values.config.grpcListen | int }} on the service endpoint above.
-{{- end }}
+  Ingestor Endpoint: {{ .Values.ingress.grpcHostname }}:{{ include "hose.port" .Values.config.grpcListen | int }}

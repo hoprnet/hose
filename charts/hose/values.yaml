@@ -84,13 +84,13 @@ resources: {}
 readinessProbe:
   httpGet:
     path: /readyz
-    port: http
+    port: web
   initialDelaySeconds: 5
   periodSeconds: 10
 livenessProbe:
   httpGet:
     path: /livez
-    port: http
+    port: web
   initialDelaySeconds: 10
   periodSeconds: 20
 nodeSelector: {}
