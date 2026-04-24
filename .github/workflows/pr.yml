@@ -1,4 +1,4 @@
-name: CI
+name: PR
 on:
   pull_request:
     types:
@@ -54,6 +54,7 @@ jobs:
       version_type: commit
       build_matrix: >-
         [
+
           {
             "runner": "depot-ubuntu-24.04-4",
             "architecture": "x86_64-linux",
