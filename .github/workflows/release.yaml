@@ -1,0 +1,65 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Version type after release
+        required: true
+        type: choice
+        default: "patch"
+        options:
+          - rc
+          - patch
+          - minor
+          - major
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  build-docker:
+    name: Docker
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@build-docker-v2
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    with:
+      source_branch: ${{ github.ref_name }}
+      version_type: release
+      build_matrix: |-
+        [
+          {
+            "runner": "depot-ubuntu-24.04-4",
+            "architecture": "x86_64-linux",
+            "build_command": "nix build -L .#docker-hose-x86_64-linux"
+          }
+        ]
+      cachix_cache_name: hose
+      docker_image_name: hose
+      docker_image_format: skopeo
+      fail_on_scan_vulnerabilities: ${{ vars.FAIL_ON_SCAN_VULNERABILITIES }}
+      deployment_namespace: hose
+      deployment_label_selector: app.kubernetes.io/name=hose
+    secrets:
+      gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+      cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  release:
+    name: Close release
+    needs:
+      - build-docker
+    runs-on: depot-ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Release version
+        uses: hoprnet/hopr-workflows/actions/release-version@release-version-v3
+        with:
+          source_branch: ${{ github.ref_name }}
+          release_type: ${{ inputs.release_type }}
+          cachix_cache_name: hose
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          zulip_api_key: ${{ secrets.ZULIP_API_KEY }}
+          zulip_email: ${{ secrets.ZULIP_EMAIL }}
+          zulip_channel: HOPRd
+          zulip_topic: Releases
+          github_token: ${{ secrets.GH_RUNNER_TOKEN }}

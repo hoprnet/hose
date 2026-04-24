@@ -1,0 +1,40 @@
+name: Merge
+on:
+  pull_request:
+    types:
+      - closed
+      # - synchronize
+    branches:
+      - master
+      - 'release/*'
+concurrency:
+  group: merge-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+jobs:
+  build-docker:
+    name: Docker
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@build-docker-v2
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    with:
+      source_branch: ${{ github.event.pull_request.base.ref }}
+      version_type: pr
+      build_matrix: |-
+        [
+          {
+            "runner": "depot-ubuntu-24.04-4",
+            "architecture": "x86_64-linux",
+            "build_command": "nix build -L .#docker-hose-x86_64-linux"
+          }
+        ]
+      cachix_cache_name: hose
+      docker_image_name: hose
+      docker_image_format: skopeo
+      fail_on_scan_vulnerabilities: ${{ vars.FAIL_ON_SCAN_VULNERABILITIES }}
+      deployment_namespace: hose
+      deployment_label_selector: app.kubernetes.io/name=hose
+    secrets:
+      gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+      cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}

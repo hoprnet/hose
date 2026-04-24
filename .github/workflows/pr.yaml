@@ -1,11 +1,15 @@
-name: CI
+name: PR
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - labeled
+concurrency:
+  group: ${{ github.event.pull_request.head.ref || github.ref_name }}-pr
+  cancel-in-progress: true
 jobs:
   lint:
     name: Lint
@@ -41,41 +45,28 @@ jobs:
           name: hose
       - name: Run tests
         run: nix develop -c cargo test
-  build-dev-docker:
-    name: Docker ${{ matrix.architecture }}
-    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-image.yaml@tb/202604-update-version
-    strategy:
-      matrix:
-        include:
-          - architecture: x86_64-linux
-            command: nix run -L .#docker-hose-dev-upload-x86_64-linux
+  build-docker:
+    name: Docker
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@build-docker-v2
     permissions:
       contents: read
-      security-events: write
+      pull-requests: write
       id-token: write
     with:
       source_branch: ${{ github.event.pull_request.head.ref || github.ref }}
-      version_type: "commit"
-      architecture: ${{ matrix.architecture }}
-      cachix_cache_name: "hose"
-      build_file: "Cargo.toml"
-      build_command: ${{ matrix.command }}
-      docker_image_name: "hose-dev"
-      runner: depot-ubuntu-24.04
+      version_type: commit
+      build_matrix: |-
+        [
+          {
+            "runner": "depot-ubuntu-24.04-4",
+            "architecture": "x86_64-linux",
+            "build_command": "nix build -L .#docker-hose-x86_64-linux"
+          }
+        ]
+      cachix_cache_name: hose
+      docker_image_name: hose
+      docker_image_format: skopeo
+      fail_on_scan_vulnerabilities: ${{ vars.FAIL_ON_SCAN_VULNERABILITIES }}
     secrets:
       gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
       cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-  build-dev-docker-manifest:
-    name: Docker manifest
-    needs: build-dev-docker
-    uses: hoprnet/hopr-workflows/.github/workflows/build-docker-manifest.yaml@tb/202604-update-version
-    permissions:
-      contents: read
-    with:
-      version_type: "commit"
-      docker_image_name: "hose-dev"
-      docker_build_version: ${{ needs.build-dev-docker.outputs.docker_build_version }}
-      docker_debug_version: ${{ needs.build-dev-docker.outputs.docker_debug_version }}
-      runner: depot-ubuntu-24.04
-    secrets:
-      gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
