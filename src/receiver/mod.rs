@@ -23,7 +23,9 @@ pub fn extract_peer_id(resource: Option<&Resource>) -> Option<String> {
             })
     };
 
-    let expected_peer_id_label = std::env::var("HOSE_PEER_ID_LABEL").ok().unwrap_or("hopr.peer_id".into());
+    let expected_peer_id_label = std::env::var("HOSE_PEER_ID_LABEL")
+        .ok()
+        .unwrap_or("hopr.peer_id".into());
 
     string_val(&expected_peer_id_label).or_else(|| string_val("service.instance.id"))
 }
