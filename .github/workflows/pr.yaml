@@ -46,7 +46,7 @@ jobs:
       - name: Run tests
         run: nix develop -c cargo test
   build-docker:
-    name: Docker ${{ matrix.architecture }}
+    name: Docker
     uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@build-docker-v2
     permissions:
       contents: read
@@ -55,14 +55,12 @@ jobs:
     with:
       source_branch: ${{ github.event.pull_request.head.ref || github.ref }}
       version_type: commit
-      build_matrix: >-
+      build_matrix: |-
         [
-
-
           {
             "runner": "depot-ubuntu-24.04-4",
             "architecture": "x86_64-linux",
-            "build_command": "nix run -L .#docker-hose-dev-upload-x86_64-linux"
+            "build_command": "nix build -L .#docker-hose-x86_64-linux"
           }
         ]
       cachix_cache_name: hose

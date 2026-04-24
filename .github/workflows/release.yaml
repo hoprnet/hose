@@ -17,23 +17,21 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build-docker:
-    name: Docker ${{ matrix.architecture }}
+    name: Docker
     uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@build-docker-v2
     permissions:
       contents: read
       pull-requests: write
       id-token: write
     with:
-      source_branch: ${{ github.event.pull_request.head.ref || github.ref }}
+      source_branch: ${{ github.ref_name }}
       version_type: release
-      build_matrix: >-
+      build_matrix: |-
         [
-
-
           {
             "runner": "depot-ubuntu-24.04-4",
             "architecture": "x86_64-linux",
-            "build_command": "nix run -L .#docker-hose-upload-x86_64-linux"
+            "build_command": "nix build -L .#docker-hose-x86_64-linux"
           }
         ]
       cachix_cache_name: hose

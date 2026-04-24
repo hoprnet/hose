@@ -175,11 +175,6 @@
             };
           };
 
-          dockerUploadApps = {
-            docker-hose-upload-x86_64-linux = nixLib.mkDockerUploadApp hoseDocker.docker-hose-x86_64-linux;
-            docker-hose-dev-upload-x86_64-linux = nixLib.mkDockerUploadApp hoseDocker.docker-hose-x86_64-linux-dev;
-          };
-
           # Pre-commit hooks check
           preCommitCheck = pkgs.callPackage ./nix/packages/pre-commit-check.nix {
             inherit pre-commit system config;
@@ -265,7 +260,7 @@
           checks = import ./nix/checks.nix { inherit pkgs; };
 
           # Export applications
-          apps = dockerUploadApps;
+          apps = { };
 
           # Export packages
           packages = {
