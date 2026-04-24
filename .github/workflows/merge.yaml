@@ -6,7 +6,6 @@ on:
       # - synchronize
     branches:
       - main
-      - 'release/*'
 concurrency:
   group: merge-${{ github.event.pull_request.base.ref }}
   cancel-in-progress: false
