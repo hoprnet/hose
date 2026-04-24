@@ -1,11 +1,12 @@
-name: CI
+name: Merge
 on:
-  push:
-    branches:
-      - main
   pull_request:
+    types:
+      - closed
+      # - synchronize
     branches:
-      - main
+      - master
+      - 'release/*'
 jobs:
   build-docker:
     name: Docker ${{ matrix.architecture }}
