@@ -16,6 +16,7 @@ pub fn extract_peer_id(resource: Option<&Resource>) -> Option<String> {
     let string_val = |key: &str| {
         attrs
             .iter()
+            .inspect(|a| tracing::debug!("attribute key value = {},{:?}", a.key, a.value))
             .find(|a| a.key == key)
             .and_then(|a| match a.value.as_ref()?.value.as_ref()? {
                 crate::proto::common::any_value::Value::StringValue(s) if !s.is_empty() => Some(s.clone()),
