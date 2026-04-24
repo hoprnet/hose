@@ -62,7 +62,7 @@ jobs:
           {
             "runner": "depot-ubuntu-24.04-4",
             "architecture": "x86_64-linux",
-            "build_command": "nix run -L .#docker-hose-upload-x86_64-linux"
+            "build_command": "nix run -L .#docker-hose-dev-upload-x86_64-linux"
           }
         ]
       cachix_cache_name: hose
