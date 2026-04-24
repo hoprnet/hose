@@ -5,7 +5,7 @@ on:
       - closed
       # - synchronize
     branches:
-      - master
+      - main
       - 'release/*'
 concurrency:
   group: merge-${{ github.event.pull_request.base.ref }}
