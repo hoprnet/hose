@@ -37,8 +37,9 @@ res-watch:
         fi
     done
 
-# Build ReScript then start HOSE dev server (HTTP :8080, gRPC :4317)
-dev:
+# Build ReScript then start HOSE dev server (HTTP :8080, gRPC :4317).
+# Example: `just dev config=./hose.toml`
+dev config="":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building ReScript modules..."
@@ -57,7 +58,19 @@ dev:
     fi
     echo "Starting HOSE dev server (HTTP :8080, gRPC :4317)..."
     export RUST_LOG="${RUST_LOG:-info,hose=debug}"
-    cargo run
+    if [ -n "{{config}}" ]; then
+        cargo run -- --config "{{config}}"
+    else
+        cargo run
+    fi
+
+# Build and run HOSE against the Rotsee Blokli indexer.
+dev-rotsee:
+    just dev config=hose.rotsee.toml
+
+# Build and run HOSE against the Jura Blokli indexer.
+dev-jura:
+    just dev config=hose.jura.toml
 
 # Send synthetic OTLP traces to the local HOSE instance
 gen *ARGS:

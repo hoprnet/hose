@@ -1,0 +1,4 @@
+# HOSE configuration for the Rotsee network.
+# Load with: `just dev-rotsee`
+
+indexer_endpoint = "https://blokli.rotsee.hoprnet.link"
