@@ -1,0 +1,15 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 0,
+  "workspaces": {
+    "": {
+      "name": "hose-rescript",
+      "dependencies": {
+        "rescript": "11.1.0",
+      },
+    },
+  },
+  "packages": {
+    "rescript": ["rescript@11.1.0", "", { "bin": { "bsc": "bsc", "bstracing": "lib/bstracing", "rescript": "rescript" } }, "sha512-9la2Dv+ACylQ77I8s4spPu1JnLZXbH5WgxcLHLLUBWgFFSiv0wXqgzWztrBIZqwFgVX5BYcwldUqUVcEzdCyHg=="],
+  }
+}

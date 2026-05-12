@@ -9,7 +9,7 @@ res-build:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building ReScript modules..."
-    npm run res:build
+    bun run res:build
     mkdir -p static/js static/js/rescript
     cp lib/es6/rescript/src/*.mjs static/js/
     cp node_modules/rescript/lib/es6/js_dict.js \
@@ -26,7 +26,7 @@ res-watch:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Watching ReScript modules (Ctrl+C to stop)..."
-    npm run res:watch &
+    bun run res:watch &
     WATCH_PID=$!
     trap "kill $WATCH_PID 2>/dev/null" EXIT
     while true; do
@@ -43,8 +43,8 @@ dev:
     set -euo pipefail
     echo "Building ReScript modules..."
     if [ -f package.json ] && [ -d rescript/src ]; then
-        [ -d node_modules ] || npm install --silent
-        npm run res:build 2>&1
+        [ -d node_modules ] || bun install --silent
+        bun run res:build 2>&1
         mkdir -p static/js static/js/rescript
         cp lib/es6/rescript/src/*.mjs static/js/ 2>/dev/null || true
         cp node_modules/rescript/lib/es6/js_dict.js \

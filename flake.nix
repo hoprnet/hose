@@ -199,8 +199,7 @@
           # Configure treefmt using nix-lib options
           nix-lib.treefmt = {
             globalExcludes = [
-              # locally installed npm packages and build output
-              ".npm/"
+              # locally installed bun packages and build output
               "node_modules/"
               "lib/"
 

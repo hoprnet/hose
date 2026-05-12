@@ -1,6 +1,6 @@
 { pkgs }:
 
-pkgs.buildNpmPackage {
+pkgs.buildBunPackage {
   pname = "hose-rescript";
   version = "0.1.0";
 
@@ -13,20 +13,20 @@ pkgs.buildNpmPackage {
       inherit root;
       fileset = fs.unions [
         ./../package.json
-        ./../package-lock.json
+        ./../bun.lock
         ./../rescript.json
         ./../rescript
       ];
     };
 
-  npmDepsHash = "sha256-+Lsc9LtD4pwE5G7ltl4qJx3mSKdDHbLy0mc7E+IwUII=";
+  bunDepsHash = "sha256-+Lsc9LtD4pwE5G7ltl4qJx3mSKdDHbLy0mc7E+IwUII=";
 
   # We handle the build ourselves since rescript has a custom build step
-  dontNpmBuild = true;
+  dontBunBuild = true;
 
   buildPhase = ''
     runHook preBuild
-    npm run res:build
+    bun run res:build
     runHook postBuild
   '';
 
