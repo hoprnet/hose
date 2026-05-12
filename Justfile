@@ -12,13 +12,7 @@ res-build:
     bun run res:build
     mkdir -p static/js static/js/rescript
     cp lib/es6/rescript/src/*.mjs static/js/
-    cp node_modules/rescript/lib/es6/js_dict.js \
-       node_modules/rescript/lib/es6/js_json.js \
-       node_modules/rescript/lib/es6/js_promise.js \
-       node_modules/rescript/lib/es6/caml_option.js \
-       node_modules/rescript/lib/es6/curry.js \
-       node_modules/rescript/lib/es6/caml_array.js \
-       static/js/rescript/
+    cp node_modules/rescript/lib/es6/*.js static/js/rescript/
     echo "ReScript build complete -> static/js/"
 
 # Watch ReScript files and rebuild on change
@@ -48,13 +42,7 @@ dev config="":
         bun run res:build 2>&1
         mkdir -p static/js static/js/rescript
         cp lib/es6/rescript/src/*.mjs static/js/ 2>/dev/null || true
-        cp node_modules/rescript/lib/es6/js_dict.js \
-           node_modules/rescript/lib/es6/js_json.js \
-           node_modules/rescript/lib/es6/js_promise.js \
-           node_modules/rescript/lib/es6/caml_option.js \
-           node_modules/rescript/lib/es6/curry.js \
-           node_modules/rescript/lib/es6/caml_array.js \
-           static/js/rescript/ 2>/dev/null || true
+        cp node_modules/rescript/lib/es6/*.js static/js/rescript/ 2>/dev/null || true
     fi
     echo "Starting HOSE dev server (HTTP :8080, gRPC :4317)..."
     export RUST_LOG="${RUST_LOG:-info,hose=debug}"
