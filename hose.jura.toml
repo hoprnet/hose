@@ -1,4 +1,4 @@
 # HOSE configuration for the Jura network.
 # Load with: `just dev-jura`
 
-indexer_endpoint = "https://blokli.jura.hoprnet.link"
+indexer_endpoint = "https://blokli.jura.hoprnet.link/graphql"
