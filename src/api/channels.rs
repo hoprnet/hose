@@ -3,12 +3,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use axum::{
     Json,
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, HeaderValue, StatusCode},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    blokli::channels::{ChannelData, query_all_channels, query_peer_channels},
+    blokli::channels::{
+        AccountIdentity, ChannelData, query_account_identity_by_key_id, query_all_channels,
+        query_key_ids_by_packet_key, query_peer_channels,
+    },
     server::AppState,
 };
 
@@ -27,15 +30,41 @@ impl Default for FilterMode {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ChannelsQuery {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_peer_ids")]
     pub peer_ids: Vec<String>,
     #[serde(default)]
     pub filter_mode: FilterMode,
 }
 
-pub fn parse_peer_ids(raw_peer_ids: &[String]) -> Vec<String> {
+fn deserialize_peer_ids<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum PeerIdsInput {
+        One(String),
+        Many(Vec<String>),
+    }
+
+    let parsed = Option::<PeerIdsInput>::deserialize(deserializer)?;
+    Ok(match parsed {
+        Some(PeerIdsInput::One(v)) => vec![v],
+        Some(PeerIdsInput::Many(v)) => v,
+        None => Vec::new(),
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FilterTokenKind {
+    KeyId,
+    PacketKeyHex,
+    PeerId,
+}
+
+pub fn parse_filter_terms(raw_terms: &[String]) -> Vec<String> {
     let mut deduped = BTreeSet::new();
-    for raw in raw_peer_ids {
+    for raw in raw_terms {
         for token in raw.split([',', '\n', '\r', '\t', ' ']) {
             let value = token.trim();
             if !value.is_empty() {
@@ -44,6 +73,16 @@ pub fn parse_peer_ids(raw_peer_ids: &[String]) -> Vec<String> {
         }
     }
     deduped.into_iter().collect()
+}
+
+fn classify_token(token: &str) -> FilterTokenKind {
+    if token.chars().all(|c| c.is_ascii_digit()) {
+        return FilterTokenKind::KeyId;
+    }
+    if token.starts_with("0x") && token.len() > 2 && token.chars().skip(2).all(|c| c.is_ascii_hexdigit()) {
+        return FilterTokenKind::PacketKeyHex;
+    }
+    FilterTokenKind::PeerId
 }
 
 pub fn apply_filter(channels: Vec<ChannelData>, selected_keys: &[String], mode: FilterMode) -> Vec<ChannelData> {
@@ -66,11 +105,29 @@ pub fn apply_filter(channels: Vec<ChannelData>, selected_keys: &[String], mode: 
         .collect()
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ChannelGraphRow {
+    pub id: String,
+    pub source: String,
+    pub destination: String,
+    pub source_key_id: String,
+    pub destination_key_id: String,
+    pub source_peer_id: Option<String>,
+    pub destination_peer_id: Option<String>,
+    pub source_packet_key: Option<String>,
+    pub destination_packet_key: Option<String>,
+    pub status: String,
+    pub balance: String,
+    pub channel_epoch: u64,
+    pub ticket_index: u64,
+    pub closure_time: Option<String>,
+}
+
 /// GET /api/channels - Query channel graph with optional peer filtering.
 pub async fn get_channels(
     State(state): State<AppState>,
     Query(query): Query<ChannelsQuery>,
-) -> Result<Json<Vec<ChannelData>>, (StatusCode, String)> {
+) -> Result<(HeaderMap, Json<Vec<ChannelGraphRow>>), (StatusCode, String)> {
     let blokli_client = state.blokli_client.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
@@ -78,19 +135,42 @@ pub async fn get_channels(
         )
     })?;
 
-    let peer_ids = parse_peer_ids(&query.peer_ids);
+    let terms = parse_filter_terms(&query.peer_ids);
 
-    // Convert peer IDs to key IDs when known, but keep original values as fallback.
-    let mut selected_keys: Vec<String> = Vec::with_capacity(peer_ids.len());
-    for peer_id in &peer_ids {
-        if let Some(key_id) = state.identity_bridge.key_id_for_peer(peer_id).await {
-            selected_keys.push(key_id);
-        } else {
-            selected_keys.push(peer_id.clone());
+    let mut selected_keys = BTreeSet::new();
+    let mut unresolved = Vec::new();
+
+    for token in &terms {
+        match classify_token(token) {
+            FilterTokenKind::KeyId => {
+                selected_keys.insert(token.clone());
+            }
+            FilterTokenKind::PacketKeyHex => {
+                let packet_key = token.trim_start_matches("0x");
+                let resolved = query_key_ids_by_packet_key(blokli_client, packet_key)
+                    .await
+                    .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Indexer query failed: {e}")))?;
+                if resolved.is_empty() {
+                    unresolved.push(token.clone());
+                } else {
+                    for key in resolved {
+                        selected_keys.insert(key);
+                    }
+                }
+            }
+            FilterTokenKind::PeerId => {
+                if let Some(key_id) = state.identity_bridge.key_id_for_peer(token).await {
+                    selected_keys.insert(key_id);
+                } else {
+                    unresolved.push(token.clone());
+                }
+            }
         }
     }
 
-    let mut channels = if selected_keys.is_empty() {
+    let selected_keys: Vec<String> = selected_keys.into_iter().collect();
+
+    let mut channels = if terms.is_empty() {
         query_all_channels(blokli_client)
             .await
             .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Indexer query failed: {e}")))?
@@ -113,7 +193,68 @@ pub async fn get_channels(
     channels = apply_filter(channels, &selected_keys, query.filter_mode);
     channels.sort_by(|a, b| a.id.cmp(&b.id));
 
-    Ok(Json(channels))
+    // Resolve endpoint identity fields for current result-set key IDs.
+    let mut unique_keys = BTreeSet::new();
+    for channel in &channels {
+        unique_keys.insert(channel.source.clone());
+        unique_keys.insert(channel.destination.clone());
+    }
+
+    let mut account_map: BTreeMap<String, Option<AccountIdentity>> = BTreeMap::new();
+    for key_id in unique_keys {
+        let account = query_account_identity_by_key_id(blokli_client, &key_id)
+            .await
+            .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Indexer query failed: {e}")))?;
+        account_map.insert(key_id, account);
+    }
+
+    let mut rows = Vec::with_capacity(channels.len());
+    for channel in channels {
+        let source_key_id = channel.source.clone();
+        let destination_key_id = channel.destination.clone();
+
+        let source_packet_key = account_map
+            .get(&source_key_id)
+            .and_then(|entry| entry.as_ref())
+            .and_then(|identity| identity.packet_key.clone());
+        let destination_packet_key = account_map
+            .get(&destination_key_id)
+            .and_then(|entry| entry.as_ref())
+            .and_then(|identity| identity.packet_key.clone());
+
+        let source_peer_id = state.identity_bridge.cached_peer_id_for_key(&source_key_id).await;
+        let destination_peer_id = state.identity_bridge.cached_peer_id_for_key(&destination_key_id).await;
+
+        rows.push(ChannelGraphRow {
+            id: channel.id,
+            source: source_key_id.clone(),
+            destination: destination_key_id.clone(),
+            source_key_id,
+            destination_key_id,
+            source_peer_id,
+            destination_peer_id,
+            source_packet_key,
+            destination_packet_key,
+            status: channel.status,
+            balance: channel.balance,
+            channel_epoch: channel.channel_epoch,
+            ticket_index: channel.ticket_index,
+            closure_time: channel.closure_time,
+        });
+    }
+
+    let mut headers = HeaderMap::new();
+    if let Ok(value) = HeaderValue::from_str(&unresolved.len().to_string()) {
+        headers.insert("x-hose-filter-unresolved-count", value);
+    }
+    if !unresolved.is_empty() {
+        let compact = unresolved.join(",");
+        if let Ok(value) = compact.parse() {
+            headers.insert("x-hose-filter-unresolved", value);
+        }
+    }
+
+    Ok((headers, Json(rows)))
 }
 
 /// GET /api/peers/:peer_id/channels - Query on-chain channels for a peer.
@@ -144,7 +285,7 @@ pub async fn get_peer_channels(
 
 #[cfg(test)]
 mod tests {
-    use super::{FilterMode, apply_filter, parse_peer_ids};
+    use super::{FilterMode, FilterTokenKind, apply_filter, classify_token, parse_filter_terms};
     use crate::blokli::channels::ChannelData;
 
     fn ch(id: &str, source: &str, destination: &str) -> ChannelData {
@@ -161,14 +302,21 @@ mod tests {
     }
 
     #[test]
-    fn parse_peer_ids_splits_and_dedupes() {
-        let parsed = parse_peer_ids(&[
+    fn parse_filter_terms_splits_and_dedupes() {
+        let parsed = parse_filter_terms(&[
             "peer-a,peer-b".to_string(),
             "peer-b\npeer-c".to_string(),
             " peer-c\tpeer-d ".to_string(),
         ]);
 
         assert_eq!(parsed, vec!["peer-a", "peer-b", "peer-c", "peer-d"]);
+    }
+
+    #[test]
+    fn classify_token_detects_key_types() {
+        assert_eq!(classify_token("42"), FilterTokenKind::KeyId);
+        assert_eq!(classify_token("0xabcdef0123456789"), FilterTokenKind::PacketKeyHex);
+        assert_eq!(classify_token("12D3KooWabc"), FilterTokenKind::PeerId);
     }
 
     #[test]

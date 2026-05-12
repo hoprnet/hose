@@ -59,6 +59,32 @@ struct SafeData {
     address: String,
 }
 
+#[derive(Deserialize)]
+struct AccountsResponse {
+    accounts: AccountsResult,
+}
+
+#[derive(Deserialize)]
+struct AccountsResult {
+    #[serde(rename = "__typename")]
+    typename: String,
+    accounts: Option<Vec<AccountData>>,
+    message: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AccountData {
+    keyid: i64,
+    #[serde(rename = "packetKey")]
+    packet_key: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AccountIdentity {
+    pub key_id: String,
+    pub packet_key: Option<String>,
+}
+
 fn channels_from_result(result: ChannelsResult) -> Result<Vec<ChannelData>, BlokliError> {
     match result.typename.as_str() {
         "ChannelsList" => Ok(map_channels(result.channels.unwrap_or_default())),
@@ -81,6 +107,37 @@ fn parse_key_id(key_id: &str) -> Result<i64, BlokliError> {
     key_id
         .parse()
         .map_err(|_| BlokliError::GraphQL(format!("invalid Blokli key ID '{key_id}'")))
+}
+
+fn account_key_ids_from_result(result: AccountsResult) -> Result<Vec<String>, BlokliError> {
+    match result.typename.as_str() {
+        "AccountsList" => Ok(result
+            .accounts
+            .unwrap_or_default()
+            .into_iter()
+            .map(|a| a.keyid.to_string())
+            .collect()),
+        _ => Err(BlokliError::GraphQL(result.message.unwrap_or_else(|| {
+            format!("unexpected accounts response type '{}'", result.typename)
+        }))),
+    }
+}
+
+fn account_identities_from_result(result: AccountsResult) -> Result<Vec<AccountIdentity>, BlokliError> {
+    match result.typename.as_str() {
+        "AccountsList" => Ok(result
+            .accounts
+            .unwrap_or_default()
+            .into_iter()
+            .map(|a| AccountIdentity {
+                key_id: a.keyid.to_string(),
+                packet_key: a.packet_key,
+            })
+            .collect()),
+        _ => Err(BlokliError::GraphQL(result.message.unwrap_or_else(|| {
+            format!("unexpected accounts response type '{}'", result.typename)
+        }))),
+    }
 }
 
 fn map_channels(raw_channels: Vec<RawChannel>) -> Vec<ChannelData> {
@@ -171,6 +228,43 @@ pub async fn query_all_channels(client: &BlokliClient) -> Result<Vec<ChannelData
     channels.dedup_by(|a, b| a.id == b.id);
 
     Ok(channels)
+}
+
+/// Query Blokli account key IDs by packet key.
+pub async fn query_key_ids_by_packet_key(client: &BlokliClient, packet_key: &str) -> Result<Vec<String>, BlokliError> {
+    let query = r#"query($packetKey: String) {
+        accounts(packetKey: $packetKey) {
+            __typename
+            ... on AccountsList { accounts { keyid } }
+            ... on MissingFilterError { message }
+            ... on QueryFailedError { message }
+        }
+    }"#;
+
+    let variables = serde_json::json!({ "packetKey": packet_key });
+    let response: AccountsResponse = client.query(query, Some(variables)).await?;
+    account_key_ids_from_result(response.accounts)
+}
+
+/// Query Blokli account identity by key ID.
+pub async fn query_account_identity_by_key_id(
+    client: &BlokliClient,
+    key_id: &str,
+) -> Result<Option<AccountIdentity>, BlokliError> {
+    let key_id = parse_key_id(key_id)?;
+    let query = r#"query($keyid: Int) {
+        accounts(keyid: $keyid) {
+            __typename
+            ... on AccountsList { accounts { keyid packetKey } }
+            ... on MissingFilterError { message }
+            ... on QueryFailedError { message }
+        }
+    }"#;
+
+    let variables = serde_json::json!({ "keyid": key_id });
+    let response: AccountsResponse = client.query(query, Some(variables)).await?;
+    let mut identities = account_identities_from_result(response.accounts)?;
+    Ok(identities.pop())
 }
 
 async fn query_channels_by_endpoint(

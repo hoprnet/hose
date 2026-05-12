@@ -2,16 +2,16 @@
 block content %}
 <h1>Channel Graph</h1>
 <p class="subtitle">
-  Blokli channel table. Filter by one or more peer IDs, then refresh.
+  Blokli channel table. Filter by peer ID, packet-key hex, or account key ID.
 </p>
 
 <div class="section channel-graph-controls">
   <div class="channel-graph-controls-row">
-    <label for="peer-ids-input">Peer IDs</label>
+    <label for="peer-ids-input">Filter Terms</label>
     <textarea
       id="peer-ids-input"
       rows="3"
-      placeholder="peerA, peerB&#10;peerC"
+      placeholder="12D3KooW...&#10;0x361feaaeda...&#10;42"
     ></textarea>
   </div>
   <div class="channel-graph-controls-row">
@@ -19,6 +19,12 @@ block content %}
     <select id="filter-mode-select">
       <option value="any" selected>Any endpoint matches</option>
       <option value="both">Both endpoints match</option>
+    </select>
+    <label for="endpoint-display-select">Endpoint View</label>
+    <select id="endpoint-display-select">
+      <option value="key_id" selected>Key ID</option>
+      <option value="peer_id">Peer ID</option>
+      <option value="packet_key">Packet Key</option>
     </select>
     <button id="refresh-channels-btn" type="button">Refresh</button>
   </div>
@@ -29,14 +35,86 @@ block content %}
   <table>
     <thead>
       <tr>
-        <th>Channel ID</th>
-        <th>Source</th>
-        <th>Destination</th>
-        <th>Status</th>
-        <th>Balance</th>
-        <th>Epoch</th>
-        <th>Ticket Index</th>
-        <th>Closure Time</th>
+        <th>
+          <button
+            id="sort-id"
+            type="button"
+            class="sort-btn"
+            data-sort-key="id"
+          >
+            Channel ID
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-source"
+            type="button"
+            class="sort-btn"
+            data-sort-key="source"
+          >
+            Source
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-destination"
+            type="button"
+            class="sort-btn"
+            data-sort-key="destination"
+          >
+            Destination
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-status"
+            type="button"
+            class="sort-btn"
+            data-sort-key="status"
+          >
+            Status
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-balance"
+            type="button"
+            class="sort-btn"
+            data-sort-key="balance"
+          >
+            Balance
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-epoch"
+            type="button"
+            class="sort-btn"
+            data-sort-key="channel_epoch"
+          >
+            Epoch
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-ticket-index"
+            type="button"
+            class="sort-btn"
+            data-sort-key="ticket_index"
+          >
+            Ticket Index
+          </button>
+        </th>
+        <th>
+          <button
+            id="sort-closure-time"
+            type="button"
+            class="sort-btn"
+            data-sort-key="closure_time"
+          >
+            Closure Time
+          </button>
+        </th>
       </tr>
     </thead>
     <tbody id="channel-graph-body"></tbody>

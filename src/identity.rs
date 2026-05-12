@@ -92,4 +92,9 @@ impl IdentityBridge {
     pub async fn cached_mappings(&self) -> HashMap<String, String> {
         self.key_to_peer.read().await.clone()
     }
+
+    /// Look up a peer ID from a blockchain key ID using cache only.
+    pub async fn cached_peer_id_for_key(&self, key_id: &str) -> Option<String> {
+        self.key_to_peer.read().await.get(key_id).cloned()
+    }
 }

@@ -120,6 +120,33 @@ th {
   border-bottom: 1px solid #ddd;
 }
 
+.sort-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sort-btn::after {
+  content: " ";
+}
+
+.sort-btn.sort-asc::after {
+  content: " ↑";
+  color: #666;
+}
+
+.sort-btn.sort-desc::after {
+  content: " ↓";
+  color: #666;
+}
+
 td {
   padding: 3px 8px;
   border-bottom: 1px solid #f0f0f0;
