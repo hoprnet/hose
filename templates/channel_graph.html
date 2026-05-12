@@ -1,0 +1,48 @@
+{% extends "base.html" %} {% block title %}Channel Graph - HOSE{% endblock %} {%
+block content %}
+<h1>Channel Graph</h1>
+<p class="subtitle">
+  Blokli channel table. Filter by one or more peer IDs, then refresh.
+</p>
+
+<div class="section channel-graph-controls">
+  <div class="channel-graph-controls-row">
+    <label for="peer-ids-input">Peer IDs</label>
+    <textarea
+      id="peer-ids-input"
+      rows="3"
+      placeholder="peerA, peerB&#10;peerC"
+    ></textarea>
+  </div>
+  <div class="channel-graph-controls-row">
+    <label for="filter-mode-select">Filter Mode</label>
+    <select id="filter-mode-select">
+      <option value="any" selected>Any endpoint matches</option>
+      <option value="both">Both endpoints match</option>
+    </select>
+    <button id="refresh-channels-btn" type="button">Refresh</button>
+  </div>
+  <div id="channel-graph-status" class="sse-status">Ready.</div>
+</div>
+
+<div class="section">
+  <table>
+    <thead>
+      <tr>
+        <th>Channel ID</th>
+        <th>Source</th>
+        <th>Destination</th>
+        <th>Status</th>
+        <th>Balance</th>
+        <th>Epoch</th>
+        <th>Ticket Index</th>
+        <th>Closure Time</th>
+      </tr>
+    </thead>
+    <tbody id="channel-graph-body"></tbody>
+  </table>
+  <div id="channel-graph-empty" class="empty">No channels loaded yet.</div>
+</div>
+{% endblock %} {% block scripts %}
+<script type="module" src="/static/js/ChannelGraph.mjs"></script>
+{% endblock %}

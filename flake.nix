@@ -304,6 +304,7 @@
               just
               ast-grep
               kubernetes-helm
+              bun
             ];
           };
         };

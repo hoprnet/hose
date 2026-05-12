@@ -87,6 +87,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/debug-sessions", routing::get(crate::pages::debug_sessions))
         .route("/debug-sessions/{id}", routing::get(crate::pages::debug_session_detail))
         .route("/inspector", routing::get(crate::pages::trace_inspector))
+        .route("/channel-graph", routing::get(crate::pages::channel_graph))
         // Health probes
         .route("/readyz", routing::get(readyz))
         .route("/livez", routing::get(livez))
@@ -109,6 +110,7 @@ pub fn build_router(state: AppState) -> Router {
             "/api/peers/{peer_id}/channels",
             routing::get(crate::api::channels::get_peer_channels),
         )
+        .route("/api/channels", routing::get(crate::api::channels::get_channels))
         // SSE live event stream
         .route("/api/events", routing::get(crate::api::events::event_stream))
         // Static file serving (CSS, JS)

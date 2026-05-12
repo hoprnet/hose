@@ -116,6 +116,19 @@ pub async fn trace_inspector() -> Response {
 }
 
 // ---------------------------------------------------------------------------
+// Channel Graph
+// ---------------------------------------------------------------------------
+
+#[derive(Template)]
+#[template(path = "channel_graph.html")]
+struct ChannelGraphTemplate {}
+
+/// GET /channel-graph - Blokli channel graph table view.
+pub async fn channel_graph() -> Response {
+    render_template(&ChannelGraphTemplate {})
+}
+
+// ---------------------------------------------------------------------------
 // Debug Session Detail
 // ---------------------------------------------------------------------------
 

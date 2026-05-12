@@ -239,3 +239,62 @@ pre {
   font-size: 13px;
   margin-bottom: 12px;
 }
+
+/* === Channel graph controls === */
+.channel-graph-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.channel-graph-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.channel-graph-controls label {
+  min-width: 90px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.channel-graph-controls textarea,
+.channel-graph-controls select {
+  font: inherit;
+  color: #1a1a1a;
+  border: 1px solid #d3d3d3;
+  background: #fff;
+  padding: 6px 8px;
+}
+
+.channel-graph-controls textarea {
+  width: min(780px, 100%);
+  resize: vertical;
+}
+
+.channel-graph-controls select {
+  min-width: 220px;
+}
+
+.channel-graph-controls button {
+  font: inherit;
+  border: 1px solid #bbb;
+  background: #f6f6f6;
+  color: #1a1a1a;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.channel-graph-controls button:hover {
+  background: #ececec;
+}
+
+.channel-graph-controls button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

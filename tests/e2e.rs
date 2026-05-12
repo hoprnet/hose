@@ -351,6 +351,39 @@ async fn inspector_page_returns_200() {
 }
 
 // ---------------------------------------------------------------------------
+// Test: Channel graph page returns 200
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn channel_graph_page_returns_200() {
+    let (base_url, _state) = spawn_test_server().await;
+    let client = Client::new();
+
+    let resp = client.get(format!("{}/channel-graph", base_url)).send().await.unwrap();
+
+    assert_eq!(resp.status(), 200, "channel graph page should return 200");
+    let body = resp.text().await.unwrap();
+    assert!(
+        body.contains("Channel Graph"),
+        "channel graph page should contain the title"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Test: /api/channels returns 503 without configured indexer
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn channels_api_returns_503_when_indexer_unconfigured() {
+    let (base_url, _state) = spawn_test_server().await;
+    let client = Client::new();
+
+    let resp = client.get(format!("{}/api/channels", base_url)).send().await.unwrap();
+
+    assert_eq!(resp.status(), 503, "channels API should require indexer config");
+}
+
+// ---------------------------------------------------------------------------
 // Test: SSE events endpoint returns correct content type
 // ---------------------------------------------------------------------------
 
