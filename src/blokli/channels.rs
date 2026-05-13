@@ -1,10 +1,13 @@
+use std::{collections::BTreeMap, time::Duration};
+
 use blokli_client::{
     api::{
-        AccountSelector, BlokliQueryClient, ChannelFilter, ChannelSelector,
+        AccountSelector, BlokliQueryClient, BlokliSubscriptionClient, ChannelFilter, ChannelSelector,
         types::{Channel, ChannelStatus},
     },
     errors::ErrorKind,
 };
+use futures::StreamExt;
 
 use super::{BlokliClient, BlokliError};
 
@@ -40,6 +43,24 @@ fn parse_packet_key(packet_key: &str) -> Result<[u8; 32], BlokliError> {
     bytes
         .try_into()
         .map_err(|_| BlokliError::Client(ErrorKind::ParseError.into()))
+}
+
+pub fn peer_id_from_multi_addresses(addresses: &[String]) -> Option<String> {
+    addresses.iter().find_map(|address| {
+        address
+            .split("/p2p/")
+            .nth(1)
+            .and_then(|peer_id| peer_id.split('/').next())
+            .filter(|peer_id| !peer_id.is_empty())
+            .map(str::to_string)
+            .or_else(|| {
+                if address.starts_with("12D") {
+                    Some(address.clone())
+                } else {
+                    None
+                }
+            })
+    })
 }
 
 fn map_channel(channel: Channel) -> ChannelData {
@@ -110,8 +131,27 @@ pub async fn query_peer_channels(client: &BlokliClient, key_id: &str) -> Result<
 
 /// Query all channels known by the indexer by expanding from discovered key IDs.
 pub async fn query_all_channels(client: &BlokliClient) -> Result<Vec<ChannelData>, BlokliError> {
-    let _ = client;
-    Ok(Vec::new())
+    let mut stream = client.subscribe_graph()?;
+    let mut channels = BTreeMap::new();
+
+    loop {
+        let timeout = if channels.is_empty() {
+            Duration::from_secs(2)
+        } else {
+            Duration::from_millis(150)
+        };
+
+        match tokio::time::timeout(timeout, stream.next()).await {
+            Ok(Some(Ok(entry))) => {
+                let channel = map_channel(entry.channel);
+                channels.insert(channel.id.clone(), channel);
+            }
+            Ok(Some(Err(err))) => return Err(err.into()),
+            Ok(None) | Err(_) => break,
+        }
+    }
+
+    Ok(channels.into_values().collect())
 }
 
 /// Query Blokli account key IDs by packet key.
@@ -135,6 +175,38 @@ pub async fn query_account_identity_by_key_id(
         key_id: a.keyid.to_string(),
         chain_key: Some(a.chain_key),
         packet_key: Some(a.packet_key),
-        peer_id: a.multi_addresses.first().cloned(),
+        peer_id: peer_id_from_multi_addresses(&a.multi_addresses),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::peer_id_from_multi_addresses;
+
+    #[test]
+    fn peer_id_from_multi_addresses_extracts_p2p_component() {
+        let addresses = vec!["/ip4/127.0.0.1/tcp/9091/p2p/12D3KooWSource".to_string()];
+
+        assert_eq!(
+            peer_id_from_multi_addresses(&addresses),
+            Some("12D3KooWSource".to_string())
+        );
+    }
+
+    #[test]
+    fn peer_id_from_multi_addresses_accepts_bare_peer_id_for_compatibility() {
+        let addresses = vec!["12D3KooWSource".to_string()];
+
+        assert_eq!(
+            peer_id_from_multi_addresses(&addresses),
+            Some("12D3KooWSource".to_string())
+        );
+    }
+
+    #[test]
+    fn peer_id_from_multi_addresses_ignores_addresses_without_peer_id() {
+        let addresses = vec!["/ip4/127.0.0.1/tcp/9091".to_string()];
+
+        assert_eq!(peer_id_from_multi_addresses(&addresses), None);
+    }
 }

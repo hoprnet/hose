@@ -6,7 +6,7 @@ use blokli_client::{
 };
 use tokio::sync::RwLock;
 
-use crate::blokli::{BlokliClient, BlokliError};
+use crate::blokli::{BlokliClient, BlokliError, channels::peer_id_from_multi_addresses};
 
 /// Bidirectional mapping between blockchain key IDs and peer IDs.
 #[derive(Debug, Clone)]
@@ -49,7 +49,7 @@ impl IdentityBridge {
         let accounts = client.query_accounts(AccountSelector::KeyId(key_id)).await?;
         if let Some(peer_id) = accounts
             .into_iter()
-            .find_map(|account| account.multi_addresses.first().cloned())
+            .find_map(|account| peer_id_from_multi_addresses(&account.multi_addresses))
         {
             self.key_to_peer
                 .write()
