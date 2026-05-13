@@ -38,17 +38,37 @@ impl IdentityBridge {
             return Err(BlokliError::NotConfigured);
         };
 
-        let query = r#"query($keyId: String!) {
-            account(id: $keyId) {
-                peerId
+        let keyid = key_id
+            .parse::<i64>()
+            .map_err(|_| BlokliError::GraphQL(format!("invalid Blokli key ID '{key_id}'")))?;
+
+        let query = r#"query($keyid: Int) {
+            accounts(keyid: $keyid) {
+                __typename
+                ... on AccountsList {
+                    accounts {
+                        keyid
+                        peerId
+                    }
+                }
+                ... on MissingFilterError { message }
+                ... on QueryFailedError { message }
             }
         }"#;
 
-        let variables = serde_json::json!({ "keyId": key_id });
+        let variables = serde_json::json!({ "keyid": keyid });
 
         #[derive(serde::Deserialize)]
-        struct AccountResponse {
-            account: Option<AccountData>,
+        struct AccountsResponse {
+            accounts: AccountsResult,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct AccountsResult {
+            #[serde(rename = "__typename")]
+            typename: String,
+            accounts: Option<Vec<AccountData>>,
+            message: Option<String>,
         }
 
         #[derive(serde::Deserialize)]
@@ -57,24 +77,33 @@ impl IdentityBridge {
             peer_id: Option<String>,
         }
 
-        let response: AccountResponse = client.query(query, Some(variables)).await?;
+        let response: AccountsResponse = client.query(query, Some(variables)).await?;
 
-        if let Some(account) = response.account
-            && let Some(peer_id) = account.peer_id
-        {
-            // Update both caches
-            self.key_to_peer
-                .write()
-                .await
-                .insert(key_id.to_string(), peer_id.clone());
-            self.peer_to_key
-                .write()
-                .await
-                .insert(peer_id.clone(), key_id.to_string());
-            return Ok(Some(peer_id));
+        match response.accounts.typename.as_str() {
+            "AccountsList" => {
+                if let Some(peer_id) = response
+                    .accounts
+                    .accounts
+                    .unwrap_or_default()
+                    .into_iter()
+                    .find_map(|account| account.peer_id)
+                {
+                    self.key_to_peer
+                        .write()
+                        .await
+                        .insert(key_id.to_string(), peer_id.clone());
+                    self.peer_to_key
+                        .write()
+                        .await
+                        .insert(peer_id.clone(), key_id.to_string());
+                    return Ok(Some(peer_id));
+                }
+                Ok(None)
+            }
+            _ => Err(BlokliError::GraphQL(response.accounts.message.unwrap_or_else(|| {
+                format!("unexpected accounts response type '{}'", response.accounts.typename)
+            }))),
         }
-
-        Ok(None)
     }
 
     /// Look up a blockchain key ID from a peer ID.

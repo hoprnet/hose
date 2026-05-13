@@ -9,6 +9,7 @@ res-build:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Building ReScript modules..."
+    [ -d node_modules ] || bun install --silent
     bun run res:build
     mkdir -p static/js static/js/rescript
     cp lib/es6/rescript/src/*.mjs static/js/
@@ -20,6 +21,7 @@ res-watch:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Watching ReScript modules (Ctrl+C to stop)..."
+    [ -d node_modules ] || bun install --silent
     bun run res:watch &
     WATCH_PID=$!
     trap "kill $WATCH_PID 2>/dev/null" EXIT
@@ -36,10 +38,17 @@ res-watch:
 dev config="":
     #!/usr/bin/env bash
     set -euo pipefail
+    echo "Starting HOSE dev watcher..."
+    "$PROJECT_ROOT/scripts/dev-watch.sh" "{{config}}"
+
+# One-shot development run without file watching/restarts.
+dev-no-watch config="":
+    #!/usr/bin/env bash
+    set -euo pipefail
     echo "Building ReScript modules..."
     if [ -f package.json ] && [ -d rescript/src ]; then
         [ -d node_modules ] || bun install --silent
-        bun run res:build 2>&1
+        bun run res:build
         mkdir -p static/js static/js/rescript
         cp lib/es6/rescript/src/*.mjs static/js/ 2>/dev/null || true
         cp node_modules/rescript/lib/es6/*.js static/js/rescript/ 2>/dev/null || true

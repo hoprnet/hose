@@ -6,10 +6,12 @@ type channelData = {
   destination: string,
   source_key_id: string,
   destination_key_id: string,
-  source_peer_id: Js.Nullable.t<string>,
-  destination_peer_id: Js.Nullable.t<string>,
+  source_chain_key: Js.Nullable.t<string>,
+  destination_chain_key: Js.Nullable.t<string>,
   source_packet_key: Js.Nullable.t<string>,
   destination_packet_key: Js.Nullable.t<string>,
+  source_peer_id: Js.Nullable.t<string>,
+  destination_peer_id: Js.Nullable.t<string>,
   status: string,
   balance: string,
   channel_epoch: int,
@@ -70,18 +72,21 @@ let splitFilterTerms = (raw: string): array<string> => {
   )
 }
 
-let endpointValue = (~keyId: string, ~peerId: Js.Nullable.t<string>, ~packetKey: Js.Nullable.t<string>, ~mode: string) =>
+let endpointValue = (
+  ~keyId: string,
+  ~chainKey: Js.Nullable.t<string>,
+  ~packetKey: Js.Nullable.t<string>,
+  ~peerId: Js.Nullable.t<string>,
+  ~mode: string,
+) =>
   switch mode {
-  | "peer_id" =>
-    switch Js.Nullable.toOption(peerId) {
-    | Some(value) => value
-    | None => keyId
-    }
+  | "chain_key" => Js.Nullable.toOption(chainKey)->Belt.Option.getWithDefault("-")
   | "packet_key" =>
     switch Js.Nullable.toOption(packetKey) {
     | Some(value) => "0x" ++ value
-    | None => keyId
+    | None => "-"
     }
+  | "peer_id" => Js.Nullable.toOption(peerId)->Belt.Option.getWithDefault("-")
   | _ => keyId
   }
 
@@ -92,14 +97,16 @@ let channelRowHtml = (channel: channelData, endpointMode: string): string => {
   }
   let sourceDisplay = endpointValue(
     ~keyId=channel.source_key_id,
-    ~peerId=channel.source_peer_id,
+    ~chainKey=channel.source_chain_key,
     ~packetKey=channel.source_packet_key,
+    ~peerId=channel.source_peer_id,
     ~mode=endpointMode,
   )
   let destinationDisplay = endpointValue(
     ~keyId=channel.destination_key_id,
-    ~peerId=channel.destination_peer_id,
+    ~chainKey=channel.destination_chain_key,
     ~packetKey=channel.destination_packet_key,
+    ~peerId=channel.destination_peer_id,
     ~mode=endpointMode,
   )
 
@@ -160,21 +167,35 @@ let compareByKey = (a: channelData, b: channelData, key: string, endpointMode: s
   | "id" => compareString(a.id, b.id)
   | "source" =>
     compareString(
-      endpointValue(~keyId=a.source_key_id, ~peerId=a.source_peer_id, ~packetKey=a.source_packet_key, ~mode=endpointMode),
-      endpointValue(~keyId=b.source_key_id, ~peerId=b.source_peer_id, ~packetKey=b.source_packet_key, ~mode=endpointMode),
+      endpointValue(
+        ~keyId=a.source_key_id,
+        ~chainKey=a.source_chain_key,
+        ~packetKey=a.source_packet_key,
+        ~peerId=a.source_peer_id,
+        ~mode=endpointMode,
+      ),
+      endpointValue(
+        ~keyId=b.source_key_id,
+        ~chainKey=b.source_chain_key,
+        ~packetKey=b.source_packet_key,
+        ~peerId=b.source_peer_id,
+        ~mode=endpointMode,
+      ),
     )
   | "destination" =>
     compareString(
       endpointValue(
         ~keyId=a.destination_key_id,
-        ~peerId=a.destination_peer_id,
+        ~chainKey=a.destination_chain_key,
         ~packetKey=a.destination_packet_key,
+        ~peerId=a.destination_peer_id,
         ~mode=endpointMode,
       ),
       endpointValue(
         ~keyId=b.destination_key_id,
-        ~peerId=b.destination_peer_id,
+        ~chainKey=b.destination_chain_key,
         ~packetKey=b.destination_packet_key,
+        ~peerId=b.destination_peer_id,
         ~mode=endpointMode,
       ),
     )

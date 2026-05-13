@@ -112,10 +112,12 @@ pub struct ChannelGraphRow {
     pub destination: String,
     pub source_key_id: String,
     pub destination_key_id: String,
-    pub source_peer_id: Option<String>,
-    pub destination_peer_id: Option<String>,
+    pub source_chain_key: Option<String>,
+    pub destination_chain_key: Option<String>,
     pub source_packet_key: Option<String>,
     pub destination_packet_key: Option<String>,
+    pub source_peer_id: Option<String>,
+    pub destination_peer_id: Option<String>,
     pub status: String,
     pub balance: String,
     pub channel_epoch: u64,
@@ -222,26 +224,37 @@ pub async fn get_channels(
             .and_then(|entry| entry.as_ref())
             .and_then(|identity| identity.packet_key.clone());
 
-        let source_peer_id = state
-            .identity_bridge
-            .cached_peer_id_for_key(&source_key_id)
-            .await
-            .or_else(|| {
-                account_map
-                    .get(&source_key_id)
-                    .and_then(|entry| entry.as_ref())
-                    .and_then(|identity| identity.chain_key.clone())
-            });
-        let destination_peer_id = state
-            .identity_bridge
-            .cached_peer_id_for_key(&destination_key_id)
-            .await
-            .or_else(|| {
-                account_map
-                    .get(&destination_key_id)
-                    .and_then(|entry| entry.as_ref())
-                    .and_then(|identity| identity.chain_key.clone())
-            });
+        let source_chain_key = account_map
+            .get(&source_key_id)
+            .and_then(|entry| entry.as_ref())
+            .and_then(|identity| identity.chain_key.clone());
+        let destination_chain_key = account_map
+            .get(&destination_key_id)
+            .and_then(|entry| entry.as_ref())
+            .and_then(|identity| identity.chain_key.clone());
+
+        let source_peer_id = match state.identity_bridge.peer_id_for_key(&source_key_id).await {
+            Ok(value) => value,
+            Err(err) => {
+                tracing::warn!(
+                    key_id = %source_key_id,
+                    error = %err,
+                    "peer ID lookup failed for source endpoint"
+                );
+                state.identity_bridge.cached_peer_id_for_key(&source_key_id).await
+            }
+        };
+        let destination_peer_id = match state.identity_bridge.peer_id_for_key(&destination_key_id).await {
+            Ok(value) => value,
+            Err(err) => {
+                tracing::warn!(
+                    key_id = %destination_key_id,
+                    error = %err,
+                    "peer ID lookup failed for destination endpoint"
+                );
+                state.identity_bridge.cached_peer_id_for_key(&destination_key_id).await
+            }
+        };
 
         rows.push(ChannelGraphRow {
             id: channel.id,
@@ -249,10 +262,12 @@ pub async fn get_channels(
             destination: destination_key_id.clone(),
             source_key_id,
             destination_key_id,
-            source_peer_id,
-            destination_peer_id,
+            source_chain_key,
+            destination_chain_key,
             source_packet_key,
             destination_packet_key,
+            source_peer_id,
+            destination_peer_id,
             status: channel.status,
             balance: channel.balance,
             channel_epoch: channel.channel_epoch,
