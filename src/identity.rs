@@ -1,5 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
+use blokli_client::{
+    api::{AccountSelector, BlokliQueryClient},
+    errors::ErrorKind,
+};
 use tokio::sync::RwLock;
 
 use crate::blokli::{BlokliClient, BlokliError};
@@ -38,71 +42,26 @@ impl IdentityBridge {
             return Err(BlokliError::NotConfigured);
         };
 
-        let keyid = key_id
-            .parse::<i64>()
-            .map_err(|_| BlokliError::GraphQL(format!("invalid Blokli key ID '{key_id}'")))?;
+        let key_id = key_id
+            .parse::<u32>()
+            .map_err(|_| BlokliError::Client(ErrorKind::ParseError.into()))?;
 
-        let query = r#"query($keyid: Int) {
-            accounts(keyid: $keyid) {
-                __typename
-                ... on AccountsList {
-                    accounts {
-                        keyid
-                        peerId
-                    }
-                }
-                ... on MissingFilterError { message }
-                ... on QueryFailedError { message }
-            }
-        }"#;
-
-        let variables = serde_json::json!({ "keyid": keyid });
-
-        #[derive(serde::Deserialize)]
-        struct AccountsResponse {
-            accounts: AccountsResult,
-        }
-
-        #[derive(serde::Deserialize)]
-        struct AccountsResult {
-            #[serde(rename = "__typename")]
-            typename: String,
-            accounts: Option<Vec<AccountData>>,
-            message: Option<String>,
-        }
-
-        #[derive(serde::Deserialize)]
-        struct AccountData {
-            #[serde(rename = "peerId")]
-            peer_id: Option<String>,
-        }
-
-        let response: AccountsResponse = client.query(query, Some(variables)).await?;
-
-        match response.accounts.typename.as_str() {
-            "AccountsList" => {
-                if let Some(peer_id) = response
-                    .accounts
-                    .accounts
-                    .unwrap_or_default()
-                    .into_iter()
-                    .find_map(|account| account.peer_id)
-                {
-                    self.key_to_peer
-                        .write()
-                        .await
-                        .insert(key_id.to_string(), peer_id.clone());
-                    self.peer_to_key
-                        .write()
-                        .await
-                        .insert(peer_id.clone(), key_id.to_string());
-                    return Ok(Some(peer_id));
-                }
-                Ok(None)
-            }
-            _ => Err(BlokliError::GraphQL(response.accounts.message.unwrap_or_else(|| {
-                format!("unexpected accounts response type '{}'", response.accounts.typename)
-            }))),
+        let accounts = client.query_accounts(AccountSelector::KeyId(key_id)).await?;
+        if let Some(peer_id) = accounts
+            .into_iter()
+            .find_map(|account| account.multi_addresses.first().cloned())
+        {
+            self.key_to_peer
+                .write()
+                .await
+                .insert(key_id.to_string(), peer_id.clone());
+            self.peer_to_key
+                .write()
+                .await
+                .insert(peer_id.clone(), key_id.to_string());
+            Ok(Some(peer_id))
+        } else {
+            Ok(None)
         }
     }
 

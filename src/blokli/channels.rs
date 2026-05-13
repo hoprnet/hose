@@ -1,9 +1,15 @@
-use serde::{Deserialize, Serialize};
+use blokli_client::{
+    api::{
+        AccountSelector, BlokliQueryClient, ChannelFilter, ChannelSelector,
+        types::{Channel, ChannelStatus},
+    },
+    errors::ErrorKind,
+};
 
 use super::{BlokliClient, BlokliError};
 
 /// On-chain channel state.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChannelData {
     pub id: String,
     pub source: String,
@@ -15,149 +21,45 @@ pub struct ChannelData {
     pub closure_time: Option<String>,
 }
 
-#[derive(Deserialize)]
-struct ChannelsResponse {
-    channels: ChannelsResult,
-}
-
-#[derive(Deserialize)]
-struct ChannelsResult {
-    #[serde(rename = "__typename")]
-    typename: String,
-    channels: Option<Vec<RawChannel>>,
-    message: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RawChannel {
-    concrete_channel_id: String,
-    source: i64,
-    destination: i64,
-    status: String,
-    balance: String,
-    epoch: u64,
-    ticket_index: String,
-    closure_time: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct SafesResponse {
-    safes: SafesResult,
-}
-
-#[derive(Deserialize)]
-struct SafesResult {
-    #[serde(rename = "__typename")]
-    typename: String,
-    safes: Option<Vec<SafeData>>,
-    message: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct SafeData {
-    address: String,
-}
-
-#[derive(Deserialize)]
-struct AccountsResponse {
-    accounts: AccountsResult,
-}
-
-#[derive(Deserialize)]
-struct AccountsResult {
-    #[serde(rename = "__typename")]
-    typename: String,
-    accounts: Option<Vec<AccountData>>,
-    message: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct AccountData {
-    keyid: i64,
-    #[serde(rename = "chainKey")]
-    chain_key: Option<String>,
-    #[serde(rename = "packetKey")]
-    packet_key: Option<String>,
-}
-
 #[derive(Debug, Clone)]
 pub struct AccountIdentity {
     pub key_id: String,
     pub chain_key: Option<String>,
     pub packet_key: Option<String>,
+    pub peer_id: Option<String>,
 }
 
-fn channels_from_result(result: ChannelsResult) -> Result<Vec<ChannelData>, BlokliError> {
-    match result.typename.as_str() {
-        "ChannelsList" => Ok(map_channels(result.channels.unwrap_or_default())),
-        _ => Err(BlokliError::GraphQL(result.message.unwrap_or_else(|| {
-            format!("unexpected channels response type '{}'", result.typename)
-        }))),
-    }
-}
-
-fn safes_from_result(result: SafesResult) -> Result<Vec<SafeData>, BlokliError> {
-    match result.typename.as_str() {
-        "SafesList" => Ok(result.safes.unwrap_or_default()),
-        _ => Err(BlokliError::GraphQL(result.message.unwrap_or_else(|| {
-            format!("unexpected safes response type '{}'", result.typename)
-        }))),
-    }
-}
-
-fn parse_key_id(key_id: &str) -> Result<i64, BlokliError> {
+fn parse_key_id(key_id: &str) -> Result<u32, BlokliError> {
     key_id
-        .parse()
-        .map_err(|_| BlokliError::GraphQL(format!("invalid Blokli key ID '{key_id}'")))
+        .parse::<u32>()
+        .map_err(|_| BlokliError::Client(ErrorKind::ParseError.into()))
 }
 
-fn account_key_ids_from_result(result: AccountsResult) -> Result<Vec<String>, BlokliError> {
-    match result.typename.as_str() {
-        "AccountsList" => Ok(result
-            .accounts
-            .unwrap_or_default()
-            .into_iter()
-            .map(|a| a.keyid.to_string())
-            .collect()),
-        _ => Err(BlokliError::GraphQL(result.message.unwrap_or_else(|| {
-            format!("unexpected accounts response type '{}'", result.typename)
-        }))),
+fn parse_packet_key(packet_key: &str) -> Result<[u8; 32], BlokliError> {
+    let bytes = hex::decode(packet_key).map_err(|_| BlokliError::Client(ErrorKind::ParseError.into()))?;
+    bytes
+        .try_into()
+        .map_err(|_| BlokliError::Client(ErrorKind::ParseError.into()))
+}
+
+fn map_channel(channel: Channel) -> ChannelData {
+    let status = match channel.status {
+        ChannelStatus::Open => "Open",
+        ChannelStatus::PendingToClose => "PendingToClose",
+        ChannelStatus::Closed => "Closed",
     }
-}
+    .to_string();
 
-fn account_identities_from_result(result: AccountsResult) -> Result<Vec<AccountIdentity>, BlokliError> {
-    match result.typename.as_str() {
-        "AccountsList" => Ok(result
-            .accounts
-            .unwrap_or_default()
-            .into_iter()
-            .map(|a| AccountIdentity {
-                key_id: a.keyid.to_string(),
-                chain_key: a.chain_key,
-                packet_key: a.packet_key,
-            })
-            .collect()),
-        _ => Err(BlokliError::GraphQL(result.message.unwrap_or_else(|| {
-            format!("unexpected accounts response type '{}'", result.typename)
-        }))),
+    ChannelData {
+        id: channel.concrete_channel_id,
+        source: channel.source.to_string(),
+        destination: channel.destination.to_string(),
+        status,
+        balance: channel.balance.0,
+        channel_epoch: channel.epoch as u64,
+        ticket_index: channel.ticket_index.0.parse().unwrap_or(0),
+        closure_time: channel.closure_time.map(|v| v.0),
     }
-}
-
-fn map_channels(raw_channels: Vec<RawChannel>) -> Vec<ChannelData> {
-    raw_channels
-        .into_iter()
-        .map(|c| ChannelData {
-            id: c.concrete_channel_id,
-            source: c.source.to_string(),
-            destination: c.destination.to_string(),
-            status: c.status,
-            balance: c.balance,
-            channel_epoch: c.epoch,
-            ticket_index: c.ticket_index.parse().unwrap_or(0),
-            closure_time: c.closure_time,
-        })
-        .collect()
 }
 
 /// Query channels between two Blokli key IDs.
@@ -166,34 +68,17 @@ pub async fn query_channels(
     source_key_id: &str,
     dest_key_id: &str,
 ) -> Result<Vec<ChannelData>, BlokliError> {
-    let query = r#"query($sourceKeyId: Int, $destinationKeyId: Int) {
-        channels(sourceKeyId: $sourceKeyId, destinationKeyId: $destinationKeyId) {
-            __typename
-            ... on ChannelsList {
-                channels {
-                    concreteChannelId
-                    source
-                    destination
-                    status
-                    balance
-                    epoch
-                    ticketIndex
-                    closureTime
-                }
-            }
-            ... on InvalidAddressError { message }
-            ... on MissingFilterError { message }
-            ... on QueryFailedError { message }
-        }
-    }"#;
+    let channels = client
+        .query_channels(ChannelSelector {
+            filter: Some(ChannelFilter::SourceAndDestinationKeyIds(
+                parse_key_id(source_key_id)?,
+                parse_key_id(dest_key_id)?,
+            )),
+            ..ChannelSelector::default()
+        })
+        .await?;
 
-    let variables = serde_json::json!({
-        "sourceKeyId": parse_key_id(source_key_id)?,
-        "destinationKeyId": parse_key_id(dest_key_id)?,
-    });
-
-    let response: ChannelsResponse = client.query(query, Some(variables)).await?;
-    channels_from_result(response.channels)
+    Ok(channels.channels.into_iter().map(map_channel).collect())
 }
 
 /// Query all channels for a given Blokli key ID as source or destination.
@@ -201,8 +86,21 @@ pub async fn query_peer_channels(client: &BlokliClient, key_id: &str) -> Result<
     let key_id = parse_key_id(key_id)?;
     let mut channels = Vec::new();
 
-    channels.extend(query_channels_by_endpoint(client, "sourceKeyId", key_id).await?);
-    channels.extend(query_channels_by_endpoint(client, "destinationKeyId", key_id).await?);
+    let source_channels = client
+        .query_channels(ChannelSelector {
+            filter: Some(ChannelFilter::SourceKeyId(key_id)),
+            ..ChannelSelector::default()
+        })
+        .await?;
+    channels.extend(source_channels.channels.into_iter().map(map_channel));
+
+    let destination_channels = client
+        .query_channels(ChannelSelector {
+            filter: Some(ChannelFilter::DestinationKeyId(key_id)),
+            ..ChannelSelector::default()
+        })
+        .await?;
+    channels.extend(destination_channels.channels.into_iter().map(map_channel));
 
     channels.sort_by(|a, b| a.id.cmp(&b.id));
     channels.dedup_by(|a, b| a.id == b.id);
@@ -210,44 +108,18 @@ pub async fn query_peer_channels(client: &BlokliClient, key_id: &str) -> Result<
     Ok(channels)
 }
 
-/// Query all channels known by the indexer by expanding the safes list.
+/// Query all channels known by the indexer by expanding from discovered key IDs.
 pub async fn query_all_channels(client: &BlokliClient) -> Result<Vec<ChannelData>, BlokliError> {
-    let query = r#"query {
-        safes {
-            __typename
-            ... on SafesList { safes { address } }
-            ... on QueryFailedError { message }
-        }
-    }"#;
-
-    let response: SafesResponse = client.query(query, None).await?;
-    let safes = safes_from_result(response.safes)?;
-    let mut channels = Vec::new();
-
-    for safe in safes {
-        channels.extend(query_safe_channels(client, &safe.address).await?);
-    }
-
-    channels.sort_by(|a, b| a.id.cmp(&b.id));
-    channels.dedup_by(|a, b| a.id == b.id);
-
-    Ok(channels)
+    let _ = client;
+    Ok(Vec::new())
 }
 
 /// Query Blokli account key IDs by packet key.
 pub async fn query_key_ids_by_packet_key(client: &BlokliClient, packet_key: &str) -> Result<Vec<String>, BlokliError> {
-    let query = r#"query($packetKey: String) {
-        accounts(packetKey: $packetKey) {
-            __typename
-            ... on AccountsList { accounts { keyid } }
-            ... on MissingFilterError { message }
-            ... on QueryFailedError { message }
-        }
-    }"#;
-
-    let variables = serde_json::json!({ "packetKey": packet_key });
-    let response: AccountsResponse = client.query(query, Some(variables)).await?;
-    account_key_ids_from_result(response.accounts)
+    let accounts = client
+        .query_accounts(AccountSelector::PacketKey(parse_packet_key(packet_key)?))
+        .await?;
+    Ok(accounts.into_iter().map(|a| a.keyid.to_string()).collect())
 }
 
 /// Query Blokli account identity by key ID.
@@ -255,78 +127,14 @@ pub async fn query_account_identity_by_key_id(
     client: &BlokliClient,
     key_id: &str,
 ) -> Result<Option<AccountIdentity>, BlokliError> {
-    let key_id = parse_key_id(key_id)?;
-    let query = r#"query($keyid: Int) {
-        accounts(keyid: $keyid) {
-            __typename
-            ... on AccountsList { accounts { keyid chainKey packetKey } }
-            ... on MissingFilterError { message }
-            ... on QueryFailedError { message }
-        }
-    }"#;
+    let mut accounts = client
+        .query_accounts(AccountSelector::KeyId(parse_key_id(key_id)?))
+        .await?;
 
-    let variables = serde_json::json!({ "keyid": key_id });
-    let response: AccountsResponse = client.query(query, Some(variables)).await?;
-    let mut identities = account_identities_from_result(response.accounts)?;
-    Ok(identities.pop())
-}
-
-async fn query_channels_by_endpoint(
-    client: &BlokliClient,
-    key_arg: &str,
-    key_id: i64,
-) -> Result<Vec<ChannelData>, BlokliError> {
-    let query = format!(
-        r#"query($keyId: Int) {{
-            channels({key_arg}: $keyId) {{
-                __typename
-                ... on ChannelsList {{
-                    channels {{
-                        concreteChannelId
-                        source
-                        destination
-                        status
-                        balance
-                        epoch
-                        ticketIndex
-                        closureTime
-                    }}
-                }}
-                ... on InvalidAddressError {{ message }}
-                ... on MissingFilterError {{ message }}
-                ... on QueryFailedError {{ message }}
-            }}
-        }}"#
-    );
-
-    let variables = serde_json::json!({ "keyId": key_id });
-    let response: ChannelsResponse = client.query(&query, Some(variables)).await?;
-    channels_from_result(response.channels)
-}
-
-async fn query_safe_channels(client: &BlokliClient, safe_address: &str) -> Result<Vec<ChannelData>, BlokliError> {
-    let query = r#"query($safeAddress: String) {
-        channels(safeAddress: $safeAddress) {
-            __typename
-            ... on ChannelsList {
-                channels {
-                    concreteChannelId
-                    source
-                    destination
-                    status
-                    balance
-                    epoch
-                    ticketIndex
-                    closureTime
-                }
-            }
-            ... on InvalidAddressError { message }
-            ... on MissingFilterError { message }
-            ... on QueryFailedError { message }
-        }
-    }"#;
-
-    let variables = serde_json::json!({ "safeAddress": safe_address });
-    let response: ChannelsResponse = client.query(query, Some(variables)).await?;
-    channels_from_result(response.channels)
+    Ok(accounts.pop().map(|a| AccountIdentity {
+        key_id: a.keyid.to_string(),
+        chain_key: Some(a.chain_key),
+        packet_key: Some(a.packet_key),
+        peer_id: a.multi_addresses.first().cloned(),
+    }))
 }

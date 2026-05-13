@@ -234,25 +234,53 @@ pub async fn get_channels(
             .and_then(|identity| identity.chain_key.clone());
 
         let source_peer_id = match state.identity_bridge.peer_id_for_key(&source_key_id).await {
-            Ok(value) => value,
+            Ok(value) => value.or_else(|| {
+                account_map
+                    .get(&source_key_id)
+                    .and_then(|entry| entry.as_ref())
+                    .and_then(|identity| identity.peer_id.clone())
+            }),
             Err(err) => {
                 tracing::warn!(
                     key_id = %source_key_id,
                     error = %err,
                     "peer ID lookup failed for source endpoint"
                 );
-                state.identity_bridge.cached_peer_id_for_key(&source_key_id).await
+                state
+                    .identity_bridge
+                    .cached_peer_id_for_key(&source_key_id)
+                    .await
+                    .or_else(|| {
+                        account_map
+                            .get(&source_key_id)
+                            .and_then(|entry| entry.as_ref())
+                            .and_then(|identity| identity.peer_id.clone())
+                    })
             }
         };
         let destination_peer_id = match state.identity_bridge.peer_id_for_key(&destination_key_id).await {
-            Ok(value) => value,
+            Ok(value) => value.or_else(|| {
+                account_map
+                    .get(&destination_key_id)
+                    .and_then(|entry| entry.as_ref())
+                    .and_then(|identity| identity.peer_id.clone())
+            }),
             Err(err) => {
                 tracing::warn!(
                     key_id = %destination_key_id,
                     error = %err,
                     "peer ID lookup failed for destination endpoint"
                 );
-                state.identity_bridge.cached_peer_id_for_key(&destination_key_id).await
+                state
+                    .identity_bridge
+                    .cached_peer_id_for_key(&destination_key_id)
+                    .await
+                    .or_else(|| {
+                        account_map
+                            .get(&destination_key_id)
+                            .and_then(|entry| entry.as_ref())
+                            .and_then(|identity| identity.peer_id.clone())
+                    })
             }
         };
 

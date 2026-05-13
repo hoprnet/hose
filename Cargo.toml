@@ -43,7 +43,8 @@ tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # GraphQL client (for Blokli indexer)
-reqwest = { version = "0.12", features = ["json"] }
+blokli-client = "0.29"
+reqwest       = { version = "0.12", features = ["json"] }
 
 # SSE streaming
 futures      = "0.3"

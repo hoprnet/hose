@@ -62,11 +62,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     spawn_cleanup_task(pool.clone(), retention_hours);
 
     // Optionally create the Blokli client and spawn the channel watcher.
-    let blokli_client = config.indexer_endpoint.as_ref().map(|endpoint| {
-        let client = BlokliClient::new(endpoint.clone());
-        tracing::info!(%endpoint, "blokli indexer client configured");
-        client
-    });
+    let blokli_client = match config.indexer_endpoint.as_ref() {
+        Some(endpoint) => {
+            let client = BlokliClient::new(endpoint.clone())?;
+            tracing::info!(%endpoint, "blokli indexer client configured");
+            Some(client)
+        }
+        None => None,
+    };
 
     if let Some(ref client) = blokli_client {
         let (change_tx, _) = broadcast::channel(256);

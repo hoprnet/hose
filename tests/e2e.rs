@@ -1,6 +1,8 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
+use axum::{Json, Router, routing::post};
 use hose::{
+    blokli::BlokliClient,
     config::Config,
     identity::IdentityBridge,
     peer_router::PeerRouter,
@@ -10,6 +12,7 @@ use hose::{
     types::{DebugSession, Peer},
 };
 use reqwest::Client;
+use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use tokio::{net::TcpListener, sync::broadcast};
 
@@ -56,6 +59,133 @@ async fn spawn_test_server_with_grpc_ready(grpc_ready: bool) -> (String, AppStat
         session_tracker,
         identity_bridge,
         blokli_client: None,
+        event_tx,
+        grpc_ready: grpc_flag,
+    };
+
+    let router = build_router(state.clone());
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    tokio::spawn(async move {
+        axum::serve(listener, router).await.unwrap();
+    });
+
+    let base_url = format!("http://{}", addr);
+    (base_url, state)
+}
+
+async fn mock_graphql(Json(payload): Json<Value>) -> Json<Value> {
+    let query = payload.get("query").and_then(Value::as_str).unwrap_or_default();
+    let variables = payload.get("variables").cloned().unwrap_or_else(|| json!({}));
+
+    if query.contains("channels") {
+        let source = variables.get("sourceKeyId").and_then(Value::as_i64);
+        let destination = variables.get("destinationKeyId").and_then(Value::as_i64);
+
+        let channels = if source == Some(1) || destination == Some(1) {
+            vec![json!({
+                "balance": "100",
+                "closureTime": null,
+                "concreteChannelId": "0xabc",
+                "destination": 2,
+                "epoch": 9,
+                "source": 1,
+                "status": "OPEN",
+                "ticketIndex": "3"
+            })]
+        } else {
+            Vec::new()
+        };
+
+        return Json(json!({
+            "data": {
+                "channels": {
+                    "__typename": "ChannelsList",
+                    "channels": channels
+                }
+            }
+        }));
+    }
+
+    if query.contains("accounts") {
+        let keyid = variables.get("keyid").and_then(Value::as_i64);
+        let packet_key = variables.get("packetKey").and_then(Value::as_str);
+
+        let accounts = if packet_key.is_some() {
+            vec![json!({
+                "chainKey": "0xcccc",
+                "keyid": 1,
+                "multiAddresses": ["12D3KooWSource"],
+                "packetKey": packet_key.unwrap_or_default(),
+                "safeAddress": null
+            })]
+        } else {
+            match keyid {
+                Some(1) => vec![json!({
+                    "chainKey": "0xaaaa",
+                    "keyid": 1,
+                    "multiAddresses": ["12D3KooWSource"],
+                    "packetKey": "aa11",
+                    "safeAddress": null
+                })],
+                Some(2) => vec![json!({
+                    "chainKey": "0xbbbb",
+                    "keyid": 2,
+                    "multiAddresses": [],
+                    "packetKey": "bb22",
+                    "safeAddress": null
+                })],
+                _ => Vec::new(),
+            }
+        };
+
+        return Json(json!({
+            "data": {
+                "accounts": {
+                    "__typename": "AccountsList",
+                    "accounts": accounts
+                }
+            }
+        }));
+    }
+
+    Json(json!({"data": {}}))
+}
+
+async fn spawn_mock_indexer() -> String {
+    let router = Router::new().route("/graphql", post(mock_graphql));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    tokio::spawn(async move {
+        axum::serve(listener, router).await.unwrap();
+    });
+
+    format!("http://{}", addr)
+}
+
+async fn spawn_test_server_with_indexer(indexer_endpoint: String) -> (String, AppState) {
+    let config = Config::default();
+    let pool = setup_db().await;
+
+    let peer_tracker = PeerTracker::new();
+    let session_tracker = SessionTracker::new();
+    let peer_router = PeerRouter::new();
+    let blokli_client = Some(BlokliClient::new(indexer_endpoint).unwrap());
+    let identity_bridge = IdentityBridge::new(blokli_client.clone());
+
+    let grpc_flag = Arc::new(AtomicBool::new(true));
+
+    let (event_tx, _) = broadcast::channel(1024);
+    let state = AppState {
+        config: Arc::new(config),
+        db: pool,
+        peer_router,
+        peer_tracker,
+        session_tracker,
+        identity_bridge,
+        blokli_client,
         event_tx,
         grpc_ready: grpc_flag,
     };
@@ -381,6 +511,50 @@ async fn channels_api_returns_503_when_indexer_unconfigured() {
     let resp = client.get(format!("{}/api/channels", base_url)).send().await.unwrap();
 
     assert_eq!(resp.status(), 503, "channels API should require indexer config");
+}
+
+#[tokio::test]
+async fn channels_api_resolves_peer_ids_from_indexer_identities() {
+    let indexer_url = spawn_mock_indexer().await;
+    let (base_url, _state) = spawn_test_server_with_indexer(indexer_url).await;
+    let client = Client::new();
+
+    let resp = client
+        .get(format!("{}/api/channels?peer_ids=1&filter_mode=any", base_url))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), 200);
+    let body: Value = resp.json().await.unwrap();
+    let rows = body.as_array().expect("channels response should be an array");
+    assert_eq!(rows.len(), 1);
+
+    assert_eq!(rows[0]["source_peer_id"], "12D3KooWSource");
+    assert_eq!(rows[0]["destination_peer_id"], Value::Null);
+}
+
+#[tokio::test]
+async fn channels_api_uses_cached_identity_bridge_mapping_as_fallback() {
+    let indexer_url = spawn_mock_indexer().await;
+    let (base_url, state) = spawn_test_server_with_indexer(indexer_url).await;
+    state
+        .identity_bridge
+        .insert_mapping("2".to_string(), "12D3KooWDestinationCached".to_string())
+        .await;
+
+    let client = Client::new();
+    let resp = client
+        .get(format!("{}/api/channels?peer_ids=1&filter_mode=any", base_url))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), 200);
+    let body: Value = resp.json().await.unwrap();
+    let rows = body.as_array().expect("channels response should be an array");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["destination_peer_id"], "12D3KooWDestinationCached");
 }
 
 // ---------------------------------------------------------------------------
