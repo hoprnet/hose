@@ -222,8 +222,26 @@ pub async fn get_channels(
             .and_then(|entry| entry.as_ref())
             .and_then(|identity| identity.packet_key.clone());
 
-        let source_peer_id = state.identity_bridge.cached_peer_id_for_key(&source_key_id).await;
-        let destination_peer_id = state.identity_bridge.cached_peer_id_for_key(&destination_key_id).await;
+        let source_peer_id = state
+            .identity_bridge
+            .cached_peer_id_for_key(&source_key_id)
+            .await
+            .or_else(|| {
+                account_map
+                    .get(&source_key_id)
+                    .and_then(|entry| entry.as_ref())
+                    .and_then(|identity| identity.chain_key.clone())
+            });
+        let destination_peer_id = state
+            .identity_bridge
+            .cached_peer_id_for_key(&destination_key_id)
+            .await
+            .or_else(|| {
+                account_map
+                    .get(&destination_key_id)
+                    .and_then(|entry| entry.as_ref())
+                    .and_then(|identity| identity.chain_key.clone())
+            });
 
         rows.push(ChannelGraphRow {
             id: channel.id,

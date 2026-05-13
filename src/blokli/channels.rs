@@ -75,6 +75,8 @@ struct AccountsResult {
 #[derive(Deserialize)]
 struct AccountData {
     keyid: i64,
+    #[serde(rename = "chainKey")]
+    chain_key: Option<String>,
     #[serde(rename = "packetKey")]
     packet_key: Option<String>,
 }
@@ -82,6 +84,7 @@ struct AccountData {
 #[derive(Debug, Clone)]
 pub struct AccountIdentity {
     pub key_id: String,
+    pub chain_key: Option<String>,
     pub packet_key: Option<String>,
 }
 
@@ -131,6 +134,7 @@ fn account_identities_from_result(result: AccountsResult) -> Result<Vec<AccountI
             .into_iter()
             .map(|a| AccountIdentity {
                 key_id: a.keyid.to_string(),
+                chain_key: a.chain_key,
                 packet_key: a.packet_key,
             })
             .collect()),
@@ -255,7 +259,7 @@ pub async fn query_account_identity_by_key_id(
     let query = r#"query($keyid: Int) {
         accounts(keyid: $keyid) {
             __typename
-            ... on AccountsList { accounts { keyid packetKey } }
+            ... on AccountsList { accounts { keyid chainKey packetKey } }
             ... on MissingFilterError { message }
             ... on QueryFailedError { message }
         }
