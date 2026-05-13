@@ -113,7 +113,12 @@ async fn mock_graphql(headers: HeaderMap, Json(payload): Json<Value>) -> impl In
                         "0xaaaa",
                         "aa11"
                     ),
-                    "destination": mock_account(2, Vec::new(), "0xbbbb", "bb22")
+                    "destination": mock_account(
+                        2,
+                        vec!["/ip4/127.0.0.1/tcp/9092/p2p/12D3KooWDestination"],
+                        "0xbbbb",
+                        "bb22",
+                    )
                 }
             }
         });
@@ -166,7 +171,12 @@ async fn mock_graphql(headers: HeaderMap, Json(payload): Json<Value>) -> impl In
                     "0xaaaa",
                     "aa11",
                 )],
-                Some(2) => vec![mock_account(2, Vec::new(), "0xbbbb", "bb22")],
+                Some(2) => vec![mock_account(
+                    2,
+                    vec!["/ip4/127.0.0.1/tcp/9092/p2p/12D3KooWDestination"],
+                    "0xbbbb",
+                    "bb22",
+                )],
                 _ => Vec::new(),
             }
         };
@@ -564,7 +574,7 @@ async fn channels_api_resolves_peer_ids_from_indexer_identities() {
     assert_eq!(rows.len(), 1);
 
     assert_eq!(rows[0]["source_peer_id"], "12D3KooWSource");
-    assert_eq!(rows[0]["destination_peer_id"], Value::Null);
+    assert_eq!(rows[0]["destination_peer_id"], "12D3KooWDestination");
 }
 
 #[tokio::test]
@@ -585,6 +595,7 @@ async fn channels_api_loads_all_channels_from_blokli_graph_subscription() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["id"], "0xabc");
     assert_eq!(rows[0]["source_peer_id"], "12D3KooWSource");
+    assert_eq!(rows[0]["destination_peer_id"], "12D3KooWDestination");
 }
 
 #[tokio::test]
