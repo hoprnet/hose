@@ -5,7 +5,7 @@ options  = ["--", "fmt"]
 
 [formatter.deno]
 command  = "deno"
-excludes = [".beads/**", "lib/**", "node_modules/**", "static/js/**"]
+excludes = ["lib/**", "node_modules/**", "static/js/**"]
 includes = ["*.css", "*.html", "*.json", "*.md"]
 options  = ["fmt"]
 

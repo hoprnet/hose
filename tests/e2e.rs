@@ -196,8 +196,75 @@ async fn mock_graphql(headers: HeaderMap, Json(payload): Json<Value>) -> impl In
     Json(json!({"data": {}})).into_response()
 }
 
+async fn mock_graphql_graph_peer_ids_only(Json(payload): Json<Value>) -> impl IntoResponse {
+    let query = payload.get("query").and_then(Value::as_str).unwrap_or_default();
+    let variables = payload.get("variables").cloned().unwrap_or_else(|| json!({}));
+
+    if query.contains("openedChannelGraphUpdated") {
+        let data = json!({
+            "data": {
+                "openedChannelGraphUpdated": {
+                    "channel": mock_channel(),
+                    "source": mock_account(
+                        1,
+                        vec!["/ip4/127.0.0.1/tcp/9091/p2p/12D3KooWSource"],
+                        "0xaaaa",
+                        "aa11",
+                    ),
+                    "destination": mock_account(
+                        2,
+                        vec!["/ip4/127.0.0.1/tcp/9092/p2p/12D3KooWDestination"],
+                        "0xbbbb",
+                        "bb22",
+                    )
+                }
+            }
+        });
+        let body = format!("event: next\ndata: {data}\n\n");
+
+        return (
+            [("content-type", "text/event-stream"), ("cache-control", "no-cache")],
+            body,
+        )
+            .into_response();
+    }
+
+    if query.contains("accounts") {
+        let keyid = variables.get("keyid").and_then(Value::as_i64);
+        let accounts = match keyid {
+            Some(1) => vec![mock_account(1, Vec::new(), "0xaaaa", "aa11")],
+            Some(2) => vec![mock_account(2, Vec::new(), "0xbbbb", "bb22")],
+            _ => Vec::new(),
+        };
+
+        return Json(json!({
+            "data": {
+                "accounts": {
+                    "__typename": "AccountsList",
+                    "accounts": accounts
+                }
+            }
+        }))
+        .into_response();
+    }
+
+    Json(json!({"data": {}})).into_response()
+}
+
 async fn spawn_mock_indexer() -> String {
     let router = Router::new().route("/graphql", post(mock_graphql));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    tokio::spawn(async move {
+        axum::serve(listener, router).await.unwrap();
+    });
+
+    format!("http://{}", addr)
+}
+
+async fn spawn_graph_peer_ids_only_mock_indexer() -> String {
+    let router = Router::new().route("/graphql", post(mock_graphql_graph_peer_ids_only));
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
@@ -579,7 +646,7 @@ async fn channels_api_resolves_peer_ids_from_indexer_identities() {
 
 #[tokio::test]
 async fn channels_api_loads_all_channels_from_blokli_graph_subscription() {
-    let indexer_url = spawn_mock_indexer().await;
+    let indexer_url = spawn_graph_peer_ids_only_mock_indexer().await;
     let (base_url, _state) = spawn_test_server_with_indexer(indexer_url).await;
     let client = Client::new();
 

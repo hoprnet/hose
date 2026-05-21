@@ -214,6 +214,8 @@ pub async fn get_channels(
     for channel in channels {
         let source_key_id = channel.source.clone();
         let destination_key_id = channel.destination.clone();
+        let graph_source_peer_id = channel.source_peer_id.clone();
+        let graph_destination_peer_id = channel.destination_peer_id.clone();
 
         let source_packet_key = account_map
             .get(&source_key_id)
@@ -234,7 +236,7 @@ pub async fn get_channels(
             .and_then(|identity| identity.chain_key.clone());
 
         let source_peer_id = match state.identity_bridge.peer_id_for_key(&source_key_id).await {
-            Ok(value) => value.or_else(|| {
+            Ok(value) => value.or(graph_source_peer_id.clone()).or_else(|| {
                 account_map
                     .get(&source_key_id)
                     .and_then(|entry| entry.as_ref())
@@ -250,6 +252,7 @@ pub async fn get_channels(
                     .identity_bridge
                     .cached_peer_id_for_key(&source_key_id)
                     .await
+                    .or(graph_source_peer_id.clone())
                     .or_else(|| {
                         account_map
                             .get(&source_key_id)
@@ -259,7 +262,7 @@ pub async fn get_channels(
             }
         };
         let destination_peer_id = match state.identity_bridge.peer_id_for_key(&destination_key_id).await {
-            Ok(value) => value.or_else(|| {
+            Ok(value) => value.or(graph_destination_peer_id.clone()).or_else(|| {
                 account_map
                     .get(&destination_key_id)
                     .and_then(|entry| entry.as_ref())
@@ -275,6 +278,7 @@ pub async fn get_channels(
                     .identity_bridge
                     .cached_peer_id_for_key(&destination_key_id)
                     .await
+                    .or(graph_destination_peer_id.clone())
                     .or_else(|| {
                         account_map
                             .get(&destination_key_id)
@@ -359,6 +363,8 @@ mod tests {
             channel_epoch: 0,
             ticket_index: 0,
             closure_time: None,
+            source_peer_id: None,
+            destination_peer_id: None,
         }
     }
 

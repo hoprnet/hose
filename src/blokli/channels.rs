@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, time::Duration};
 use blokli_client::{
     api::{
         AccountSelector, BlokliQueryClient, BlokliSubscriptionClient, ChannelFilter, ChannelSelector,
-        types::{Channel, ChannelStatus},
+        types::{Account, Channel, ChannelStatus, OpenedChannelsGraphEntry},
     },
     errors::ErrorKind,
 };
@@ -22,6 +22,10 @@ pub struct ChannelData {
     pub channel_epoch: u64,
     pub ticket_index: u64,
     pub closure_time: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_peer_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destination_peer_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -80,7 +84,23 @@ fn map_channel(channel: Channel) -> ChannelData {
         channel_epoch: channel.epoch as u64,
         ticket_index: channel.ticket_index.0.parse().unwrap_or(0),
         closure_time: channel.closure_time.map(|v| v.0),
+        source_peer_id: None,
+        destination_peer_id: None,
     }
+}
+
+fn peer_id_from_account(account: &Account) -> Option<String> {
+    peer_id_from_multi_addresses(&account.multi_addresses)
+}
+
+fn map_graph_entry(entry: OpenedChannelsGraphEntry) -> ChannelData {
+    let source_peer_id = peer_id_from_account(&entry.source);
+    let destination_peer_id = peer_id_from_account(&entry.destination);
+    let mut channel = map_channel(entry.channel);
+
+    channel.source_peer_id = source_peer_id;
+    channel.destination_peer_id = destination_peer_id;
+    channel
 }
 
 /// Query channels between two Blokli key IDs.
@@ -143,7 +163,7 @@ pub async fn query_all_channels(client: &BlokliClient) -> Result<Vec<ChannelData
 
         match tokio::time::timeout(timeout, stream.next()).await {
             Ok(Some(Ok(entry))) => {
-                let channel = map_channel(entry.channel);
+                let channel = map_graph_entry(entry);
                 channels.insert(channel.id.clone(), channel);
             }
             Ok(Some(Err(err))) => return Err(err.into()),
