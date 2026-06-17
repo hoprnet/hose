@@ -18,7 +18,7 @@ concurrency:
 jobs:
   build-docker:
     name: Docker
-    uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@build-docker-v2
+    uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@fa71078959cf9f892185e8df16551720693a2cd1 # 0.9.3
     permissions:
       contents: read
       pull-requests: write
@@ -41,7 +41,6 @@ jobs:
       deployment_namespace: hose
       deployment_label_selector: app.kubernetes.io/name=hose
     secrets:
-      gcp_service_account: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
       cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
   release:
     name: Close release
@@ -50,9 +49,10 @@ jobs:
     runs-on: depot-ubuntu-24.04
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Release version
-        uses: hoprnet/hopr-workflows/actions/release-version@release-version-v3
+        uses: hoprnet/hopr-workflows/actions/release-version@fa71078959cf9f892185e8df16551720693a2cd1 # 0.9.3
         with:
           source_branch: ${{ github.ref_name }}
           release_type: ${{ inputs.release_type }}
@@ -62,4 +62,4 @@ jobs:
           zulip_email: ${{ secrets.ZULIP_EMAIL }}
           zulip_channel: HOPRd
           zulip_topic: Releases
-          github_token: ${{ secrets.GH_RUNNER_TOKEN }}
+          github_app_private_key: ${{ secrets.GH_APP_HOPRNET_BOT_PRIVATE_KEY }}
