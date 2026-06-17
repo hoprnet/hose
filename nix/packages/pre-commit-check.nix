@@ -36,6 +36,20 @@ pre-commit.lib.${system}.run {
 
     # Commit message formatting
     commitizen.enable = true;
+
+    # GitHub Actions workflow linting
+    actionlint.enable = true;
+
+    # Enforce SHA-pinned action refs
+    pinact = {
+      enable = true;
+      name = "pinact";
+      description = "Check GitHub Action refs are SHA-pinned and resolvable";
+      entry = "${pkgs.pinact}/bin/pinact run --check";
+      files = "\\.ya?ml$";
+      language = "system";
+      pass_filenames = false;
+    };
   };
 
   # Tools available to the pre-commit environment
