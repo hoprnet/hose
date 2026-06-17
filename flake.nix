@@ -284,8 +284,8 @@
             treefmtWrapper = config.treefmt.build.wrapper;
             treefmtPrograms = pkgs.lib.attrValues config.treefmt.build.programs;
             shellHook = ''
-              ${preCommitCheck.shellHook}
               export GITHUB_TOKEN="''${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}"
+              ${preCommitCheck.shellHook}
 
               export PROJECT_ROOT="$(${pkgs.git}/bin/git rev-parse --show-toplevel)"
               export PROTOC="${pkgs.protobuf}/bin/protoc"
@@ -295,6 +295,7 @@
               echo "Node $(node --version)"
             '';
             extraPackages = with pkgs; [
+              gh
               protobuf
               pkg-config
               openssl
