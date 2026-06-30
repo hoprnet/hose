@@ -75,9 +75,3 @@ helm-test *ARGS:
     echo ""
     echo "Rendering templates..."
     helm template test charts/hose/ {{ARGS}}
-
-# Update GitHub Actions SHA pins to latest releases
-gha-update *ARGS:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    "$PROJECT_ROOT/scripts/gha-update.ts" {{ARGS}}
