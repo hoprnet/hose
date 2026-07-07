@@ -113,6 +113,7 @@ These values map directly to HOSE environment variables via a ConfigMap.
 | `nodeSelector`   | object | `{}`    | Node selector constraints      |
 | `tolerations`    | list   | `[]`    | Tolerations                    |
 | `affinity`       | object | `{}`    | Affinity rules                 |
+| `deploymentAnnotations` | object | `{}` | Additional Deployment annotations |
 | `podAnnotations` | object | `{}`    | Additional pod annotations     |
 | `podLabels`      | object | `{}`    | Additional pod labels          |
 
