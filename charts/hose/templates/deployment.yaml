@@ -4,6 +4,10 @@ metadata:
   name: {{ include "hose.fullname" . }}
   labels:
     {{- include "hose.labels" . | nindent 4 }}
+  {{- with .Values.deploymentAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   # SQLite does not support concurrent writers, so replicas must stay at 1
   replicas: {{ .Values.replicaCount }}

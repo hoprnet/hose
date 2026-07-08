@@ -107,14 +107,15 @@ These values map directly to HOSE environment variables via a ConfigMap.
 
 ### Resources and Scheduling
 
-| Key              | Type   | Default | Description                    |
-| ---------------- | ------ | ------- | ------------------------------ |
-| `resources`      | object | `{}`    | CPU/memory requests and limits |
-| `nodeSelector`   | object | `{}`    | Node selector constraints      |
-| `tolerations`    | list   | `[]`    | Tolerations                    |
-| `affinity`       | object | `{}`    | Affinity rules                 |
-| `podAnnotations` | object | `{}`    | Additional pod annotations     |
-| `podLabels`      | object | `{}`    | Additional pod labels          |
+| Key                     | Type   | Default | Description                       |
+| ----------------------- | ------ | ------- | --------------------------------- |
+| `resources`             | object | `{}`    | CPU/memory requests and limits    |
+| `nodeSelector`          | object | `{}`    | Node selector constraints         |
+| `tolerations`           | list   | `[]`    | Tolerations                       |
+| `affinity`              | object | `{}`    | Affinity rules                    |
+| `deploymentAnnotations` | object | `{}`    | Additional Deployment annotations |
+| `podAnnotations`        | object | `{}`    | Additional pod annotations        |
+| `podLabels`             | object | `{}`    | Additional pod labels             |
 
 ## Sending Telemetry
 
