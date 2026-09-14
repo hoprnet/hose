@@ -17,6 +17,8 @@ serviceAccount:
   name: ""
 # Annotations to add to the Deployment object itself
 deploymentAnnotations: {}
+# Labels to add to the Deployment object itself (not the pod template)
+deploymentLabels: {}
 podAnnotations: {}
 podLabels: {}
 service:
@@ -98,3 +100,12 @@ livenessProbe:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+networkPolicy:
+  # Whether to create the NetworkPolicy allowing ingress from the opentelemetry collector.
+  # A no-op unless the hose namespace has already opted into the deny-all baseline.
+  enabled: false
+  ingressOpentelemetry:
+    namespace: opentelemetry
+    podSelector:
+      app.kubernetes.io/component: opentelemetry-collector
+      app.kubernetes.io/instance: opentelemetry.opentelemetry-kube-stack-hoprnet

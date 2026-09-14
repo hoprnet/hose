@@ -107,15 +107,27 @@ These values map directly to HOSE environment variables via a ConfigMap.
 
 ### Resources and Scheduling
 
-| Key                     | Type   | Default | Description                       |
-| ----------------------- | ------ | ------- | --------------------------------- |
-| `resources`             | object | `{}`    | CPU/memory requests and limits    |
-| `nodeSelector`          | object | `{}`    | Node selector constraints         |
-| `tolerations`           | list   | `[]`    | Tolerations                       |
-| `affinity`              | object | `{}`    | Affinity rules                    |
-| `deploymentAnnotations` | object | `{}`    | Additional Deployment annotations |
-| `podAnnotations`        | object | `{}`    | Additional pod annotations        |
-| `podLabels`             | object | `{}`    | Additional pod labels             |
+| Key                     | Type   | Default | Description                                                              |
+| ----------------------- | ------ | ------- | ------------------------------------------------------------------------ |
+| `resources`             | object | `{}`    | CPU/memory requests and limits                                           |
+| `nodeSelector`          | object | `{}`    | Node selector constraints                                                |
+| `tolerations`           | list   | `[]`    | Tolerations                                                              |
+| `affinity`              | object | `{}`    | Affinity rules                                                           |
+| `deploymentAnnotations` | object | `{}`    | Additional Deployment annotations                                        |
+| `deploymentLabels`      | object | `{}`    | Additional labels on the Deployment object itself (not the pod template) |
+| `podAnnotations`        | object | `{}`    | Additional pod annotations                                               |
+| `podLabels`             | object | `{}`    | Additional pod labels                                                    |
+
+### Network Policy
+
+| Key                                              | Type   | Default         | Description                                                              |
+| ------------------------------------------------ | ------ | --------------- | ------------------------------------------------------------------------ |
+| `networkPolicy.enabled`                          | bool   | `false`         | Create a NetworkPolicy allowing ingress from the opentelemetry collector |
+| `networkPolicy.ingressOpentelemetry.namespace`   | string | `opentelemetry` | Namespace the opentelemetry collector runs in                            |
+| `networkPolicy.ingressOpentelemetry.podSelector` | object | see values.yaml | Pod selector matching the opentelemetry collector                        |
+
+A no-op unless the `hose` namespace has already opted into a NetworkPolicy
+deny-all baseline - otherwise ingress is unrestricted regardless of this setting.
 
 ## Sending Telemetry
 
