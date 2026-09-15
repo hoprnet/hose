@@ -1,4 +1,5 @@
 {{- if .Values.networkPolicy.enabled }}
+{{- $lbIpBlocks := dig "ingressLoadBalancer" "ipBlocks" (list) .Values.networkPolicy }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -22,4 +23,14 @@ spec:
       ports:
         - protocol: TCP
           port: grpc
+    {{- if and (eq .Values.service.grpcType "LoadBalancer") $lbIpBlocks }}
+    - from:
+        {{- range $lbIpBlocks }}
+        - ipBlock:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: grpc
+    {{- end }}
 {{- end }}
