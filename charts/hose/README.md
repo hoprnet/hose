@@ -120,11 +120,31 @@ These values map directly to HOSE environment variables via a ConfigMap.
 
 ### Network Policy
 
-| Key                                              | Type   | Default         | Description                                                              |
-| ------------------------------------------------ | ------ | --------------- | ------------------------------------------------------------------------ |
-| `networkPolicy.enabled`                          | bool   | `false`         | Create a NetworkPolicy allowing ingress from the opentelemetry collector |
-| `networkPolicy.ingressOpentelemetry.namespace`   | string | `opentelemetry` | Namespace the opentelemetry collector runs in                            |
-| `networkPolicy.ingressOpentelemetry.podSelector` | object | see values.yaml | Pod selector matching the opentelemetry collector                        |
+| Key                                              | Type   | Default               | Description                                                                 |
+| ------------------------------------------------ | ------ | --------------------- | --------------------------------------------------------------------------- |
+| `networkPolicy.enabled`                          | bool   | `false`               | Create a NetworkPolicy allowing ingress from the opentelemetry collector    |
+| `networkPolicy.ingressOpentelemetry.namespace`   | string | `opentelemetry`       | Namespace the opentelemetry collector runs in                               |
+| `networkPolicy.ingressOpentelemetry.podSelector` | object | see values.yaml       | Pod selector matching the opentelemetry collector                           |
+| `networkPolicy.ingressLoadBalancer.ipBlocks`     | list   | `[{cidr: 0.0.0.0/0}]` | ipBlocks allowed on the gRPC port when `service.grpcType` is `LoadBalancer` |
+
+When `service.grpcType` is `LoadBalancer` (the default), the NetworkPolicy also allows
+ingress on the gRPC port from `networkPolicy.ingressLoadBalancer.ipBlocks` - the ingestor
+is meant to receive telemetry from sources outside the cluster
+(e.g. `hose-ingrestor.<env>.hoprnet.link`), not just the in-cluster opentelemetry collector.
+
+Each entry is a standard NetworkPolicy [ipBlock](https://kubernetes.io/docs/concepts/services-networking/network-policies/#behavior-of-ipblock-selectors):
+a `cidr` plus an optional `except` list. The default is fully open; narrow it per
+environment, or set `ipBlocks: []` to drop the rule and keep only the collector rule:
+
+```yaml
+networkPolicy:
+  ingressLoadBalancer:
+    ipBlocks:
+      - cidr: 203.0.113.0/24
+      - cidr: 10.0.0.0/8
+        except:
+          - 10.10.0.0/16
+```
 
 A no-op unless the `hose` namespace has already opted into a NetworkPolicy
 deny-all baseline - otherwise ingress is unrestricted regardless of this setting.

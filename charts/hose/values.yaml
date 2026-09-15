@@ -109,3 +109,12 @@ networkPolicy:
     podSelector:
       app.kubernetes.io/component: opentelemetry-collector
       app.kubernetes.io/instance: opentelemetry.opentelemetry-kube-stack-hoprnet
+  # Ingress allowed towards the gRPC port when service.grpcType is LoadBalancer.
+  # Each entry is a NetworkPolicy ipBlock: a `cidr` plus an optional `except` list.
+  # Set to an empty list to drop the rule entirely.
+  ingressLoadBalancer:
+    ipBlocks:
+      - cidr: 0.0.0.0/0
+    # - cidr: 10.0.0.0/8
+    #   except:
+    #     - 10.10.0.0/16
