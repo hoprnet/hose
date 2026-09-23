@@ -1,7 +1,7 @@
 [formatter.rust]
 command  = "cargo"
 includes = ["*.rs"]
-options  = ["--", "fmt"]
+options  = ["fmt", "--"]
 
 [formatter.deno]
 command  = "deno"
@@ -12,4 +12,4 @@ options  = ["fmt"]
 [formatter.rescript]
 command  = "npx"
 includes = ["*.res"]
-options  = ["format", "rescript"]
+options  = ["rescript", "format"]

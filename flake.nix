@@ -15,7 +15,7 @@
 
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
-    nixpkgs.url = "github:NixOS/nixpkgs/release-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-26.05";
 
     # HOPR Nix Library (provides Docker images, dev shells, treefmt)
     nix-lib.url = "github:hoprnet/nix-lib";
