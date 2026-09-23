@@ -125,6 +125,8 @@ These values map directly to HOSE environment variables via a ConfigMap.
 | `networkPolicy.enabled`                          | bool   | `false`               | Create a NetworkPolicy allowing ingress from the opentelemetry collector    |
 | `networkPolicy.ingressOpentelemetry.namespace`   | string | `opentelemetry`       | Namespace the opentelemetry collector runs in                               |
 | `networkPolicy.ingressOpentelemetry.podSelector` | object | see values.yaml       | Pod selector matching the opentelemetry collector                           |
+| `networkPolicy.ingressWeb.namespace`             | string | `ingress-nginx`       | Namespace the ingress controller fronting the web UI runs in                |
+| `networkPolicy.ingressWeb.podSelector`           | object | see values.yaml       | Pod selector matching the ingress controller                                |
 | `networkPolicy.ingressLoadBalancer.ipBlocks`     | list   | `[{cidr: 0.0.0.0/0}]` | ipBlocks allowed on the gRPC port when `service.grpcType` is `LoadBalancer` |
 
 When `service.grpcType` is `LoadBalancer` (the default), the NetworkPolicy also allows
