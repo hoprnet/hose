@@ -109,6 +109,13 @@ networkPolicy:
     podSelector:
       app.kubernetes.io/component: opentelemetry-collector
       app.kubernetes.io/instance: opentelemetry.opentelemetry-kube-stack-hoprnet
+  # Ingress allowed towards the "web" port (the chart's own http Ingress, ingress.yaml) -
+  # set to null/{} to drop the rule if something other than nginx-internal fronts it.
+  ingressWeb:
+    namespace: ingress-nginx
+    podSelector:
+      app.kubernetes.io/instance: nginx-internal
+      app.kubernetes.io/component: controller
   # Ingress allowed towards the gRPC port when service.grpcType is LoadBalancer.
   # Each entry is a NetworkPolicy ipBlock: a `cidr` plus an optional `except` list.
   # Set to an empty list to drop the rule entirely.

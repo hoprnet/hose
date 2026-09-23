@@ -23,6 +23,18 @@ spec:
       ports:
         - protocol: TCP
           port: grpc
+    {{- if .Values.networkPolicy.ingressWeb }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicy.ingressWeb.namespace }}
+          podSelector:
+            matchLabels:
+              {{- .Values.networkPolicy.ingressWeb.podSelector | toYaml | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: web
+    {{- end }}
     {{- if and (eq .Values.service.grpcType "LoadBalancer") $lbIpBlocks }}
     - from:
         {{- range $lbIpBlocks }}
