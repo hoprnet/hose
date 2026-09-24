@@ -28,8 +28,14 @@ in Cloud Logging, which is what the script reads. No SSH required.
 gcloud auth login          # SSO expires often; re-run when reads fail
 ```
 
-The script targets project `gnosisvpn-staging` regardless of your gcloud
-default. A read failing with `Reauthentication failed. cannot prompt during
+The script targets project `gnosisvpn-production` regardless of your gcloud
+default — that is where the jura-prod fleet lives. `gnosisvpn-staging` holds
+jura-staging nodes under the *same instance names*, so pointing at it returns
+plausible logs from the wrong network; the script warns when the fetched
+`node_network` is not `jura-prod`. Override with `PROJECT` / `EXPECTED_NETWORK`
+to pull the staging fleet.
+
+A read failing with `Reauthentication failed. cannot prompt during
 non-interactive execution` means the token lapsed — log in again. An agent
 cannot fix this itself and must ask you to run it.
 
@@ -46,6 +52,8 @@ cannot fix this itself and must ask you to run it.
 | `SINCE` / `UNTIL` | RFC3339 window bounds (default `<day>T09:00:00Z` → `T21:00:00Z`) |
 | `SEVERITY` | Extra filter clause, e.g. `AND severity>=WARNING` |
 | `MAX_ENTRIES` | Per-node cap (default 1000000; `0` = unlimited) |
+| `PROJECT` | GCP project (default `gnosisvpn-production`) |
+| `EXPECTED_NETWORK` | Sanity-check value for `node_network` (default `jura-prod`) |
 
 Output lands in `./jura-prod-logs/<day>/<node>.json` as a JSON array of full
 structured entries, chronological, with `run.log` holding per-node counts.

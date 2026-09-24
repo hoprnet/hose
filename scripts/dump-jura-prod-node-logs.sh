@@ -29,7 +29,11 @@
 
 set -uo pipefail   # NOT -e: one bad node must not abort the whole run
 
-PROJECT="gnosisvpn-staging"
+# jura-prod nodes live in gnosisvpn-production. gnosisvpn-staging holds the
+# jura-staging fleet under identical instance names, so a wrong PROJECT here
+# yields plausible-looking logs from the wrong network.
+PROJECT="${PROJECT:-gnosisvpn-production}"
+EXPECTED_NETWORK="${EXPECTED_NETWORK:-jura-prod}"
 LOG_NAME="projects/${PROJECT}/logs/output.hoprd"
 
 # Max entries pulled per node. gcloud logging read defaults to 1000; bump high
@@ -120,8 +124,13 @@ for NAME in "${NODES[@]}"; do
   fi
 
   # Count entries and warn on empty/at-cap results.
-  count=$(grep -c '"insertId"' "$LOCAL_LOG" 2>/dev/null || echo 0)
+  count=$(grep -c '"insertId"' "$LOCAL_LOG" 2>/dev/null) || count=0
   bytes=$(wc -c <"$LOCAL_LOG" | tr -d ' ')
+
+  net=$(grep -o '"node_network": "[^"]*"' "$LOCAL_LOG" | head -1 | cut -d'"' -f4)
+  if [ -n "$net" ] && [ "$net" != "$EXPECTED_NETWORK" ]; then
+    log "    WARN: ${NAME} reports node_network=${net}, expected ${EXPECTED_NETWORK} — wrong PROJECT?"
+  fi
 
   if [ "$count" -eq 0 ]; then
     log "    WARN: ${NAME} returned 0 entries (${bytes}B)"
