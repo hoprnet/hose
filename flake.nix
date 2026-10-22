@@ -135,6 +135,9 @@
             profile = "dev";
           };
 
+          # CA bundle without the compromised emSign ECC Root CA - G3 (GHSA-6q48-6c7w-9gw2).
+          cacertWithoutEmsignG3 = pkgsLinux.cacert.override { blacklist = [ "emSign ECC Root CA - G3" ]; };
+
           # Container environment variables
           containerEnv = [
             "HOSE_GRPC_LISTEN=0.0.0.0:4317"
@@ -144,7 +147,7 @@
             "HOSE_WRITE_BUFFER_SIZE=1000"
             "HOSE_WRITE_BUFFER_FLUSH_SECS=5"
             "RUST_LOG=info"
-            "SSL_CERT_FILE=${pkgsLinux.cacert}/etc/ssl/certs/ca-bundle.crt"
+            "SSL_CERT_FILE=${cacertWithoutEmsignG3}/etc/ssl/certs/ca-bundle.crt"
           ];
 
           # Docker images using nix-lib
@@ -158,7 +161,7 @@
               env = containerEnv;
               extraContents = [
                 (mkAppRoot hoseReleaseLinux)
-                pkgsLinux.cacert
+                cacertWithoutEmsignG3
               ];
             };
             docker-hose-x86_64-linux-dev = nixLib.mkDockerImage {
@@ -170,7 +173,7 @@
               env = containerEnv;
               extraContents = [
                 (mkAppRoot hoseDevLinux)
-                pkgsLinux.cacert
+                cacertWithoutEmsignG3
               ];
             };
           };
