@@ -18,7 +18,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/release-26.05";
 
     # HOPR Nix Library (provides Docker images, dev shells, treefmt)
-    nix-lib.url = "github:hoprnet/nix-lib";
+    nix-lib.url = "github:hoprnet/nix-lib/v2.0.0";
 
     # Rust build system
     crane.url = "github:ipetkov/crane";
@@ -144,7 +144,6 @@
             "HOSE_WRITE_BUFFER_SIZE=1000"
             "HOSE_WRITE_BUFFER_FLUSH_SECS=5"
             "RUST_LOG=info"
-            "SSL_CERT_FILE=${pkgsLinux.cacert}/etc/ssl/certs/ca-bundle.crt"
           ];
 
           # Docker images using nix-lib
@@ -158,7 +157,6 @@
               env = containerEnv;
               extraContents = [
                 (mkAppRoot hoseReleaseLinux)
-                pkgsLinux.cacert
               ];
             };
             docker-hose-x86_64-linux-dev = nixLib.mkDockerImage {
@@ -170,7 +168,6 @@
               env = containerEnv;
               extraContents = [
                 (mkAppRoot hoseDevLinux)
-                pkgsLinux.cacert
               ];
             };
           };
