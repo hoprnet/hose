@@ -18,7 +18,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/release-26.05";
 
     # HOPR Nix Library (provides Docker images, dev shells, treefmt)
-    nix-lib.url = "github:hoprnet/nix-lib?ref=fix/emsign-g3-cacert";
+    nix-lib.url = "github:hoprnet/nix-lib/v2.0.0";
 
     # Rust build system
     crane.url = "github:ipetkov/crane";

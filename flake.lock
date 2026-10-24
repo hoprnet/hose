@@ -2,11 +2,11 @@
   "nodes": {
     "crane": {
       "locked": {
-        "lastModified": 1791754810,
-        "narHash": "sha256-cN0Mgk+sQtCJcGWs9H4M0CnLRAuC4I8aCwiBTcBJs6E=",
+        "lastModified": 1792350552,
+        "narHash": "sha256-292lvpvxTGKryKxh3/3tcIVi85CwYGdl4oOi113Sob8=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "bd63bf1d0a0f6dcacd7549c714a671ee63b0db6a",
+        "rev": "e675a36b7377bebe41d548388a2501cbb16d380d",
         "type": "github"
       },
       "original": {
@@ -119,27 +119,27 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1792682953,
-        "narHash": "sha256-iC3qMuYeMHymwGZYdDaSOfh8mlu+zOfdGdlxxzcgZ/Q=",
+        "lastModified": 1792856690,
+        "narHash": "sha256-aLqNUNNsZs1zpemeHJqNQDGPxgq1EGcP7EEkwCwUNzE=",
         "owner": "hoprnet",
         "repo": "nix-lib",
-        "rev": "780b31ec1b1d05a809b867dce0c5b8a44cf1c369",
+        "rev": "f275be788905493db39cf200e9c0e6197c139c8e",
         "type": "github"
       },
       "original": {
         "owner": "hoprnet",
-        "ref": "fix/emsign-g3-cacert",
+        "ref": "v2.0.0",
         "repo": "nix-lib",
         "type": "github"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1792113560,
-        "narHash": "sha256-I9F1LjbDMHgBNkwqr8NMSbkxw0W0htJgzspKb+rHKHo=",
+        "lastModified": 1792853627,
+        "narHash": "sha256-KRKzB4GB1MCzrAHJ8O8Dl7tsFgmlIshjQco0cW4fMwU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "51c53e812c722c48c778ea3c610b2ebfda66c7f5",
+        "rev": "9010467672793828b37aef74fba3d31066e28816",
         "type": "github"
       },
       "original": {
@@ -219,11 +219,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792087235,
-        "narHash": "sha256-vQHkG9lwSHJI3MVnyilP50hWW3TNnBWFTbLIurWgPhI=",
+        "lastModified": 1792825530,
+        "narHash": "sha256-aphXA2IFNd3q48++TKmfuuvDDjkrgGdJDnDIhij9684=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "87ffb7f777aef2e2647fd8fd718a5b3cbc825588",
+        "rev": "5b9f1198b59bcb31c5c3250b332e7d77590e6306",
         "type": "github"
       },
       "original": {
