@@ -33,6 +33,7 @@ jobs:
         run: nix develop -c cargo clippy -- -D warnings
   test:
     name: Test
+    needs: [lint]
     runs-on: depot-ubuntu-24.04
     steps:
       - name: Checkout
@@ -49,6 +50,7 @@ jobs:
         run: nix develop -c cargo test
   build-docker:
     name: Docker
+    needs: [lint, test]
     uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@fa71078959cf9f892185e8df16551720693a2cd1 # 0.9.3
     permissions:
       contents: read
