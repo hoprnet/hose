@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "charts/**"
+permissions: {}
 jobs:
   release:
     runs-on: depot-ubuntu-24.04

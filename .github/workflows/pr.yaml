@@ -7,8 +7,10 @@ on:
       - reopened
       - ready_for_review
       - labeled
+permissions:
+  contents: read
 concurrency:
-  group: ${{ github.event.pull_request.head.ref || github.ref_name }}-pr
+  group: ${{ github.event.pull_request.number || github.ref }}-pr
   cancel-in-progress: true
 jobs:
   lint:
@@ -31,6 +33,7 @@ jobs:
         run: nix develop -c cargo clippy -- -D warnings
   test:
     name: Test
+    needs: [lint]
     runs-on: depot-ubuntu-24.04
     steps:
       - name: Checkout
@@ -47,6 +50,7 @@ jobs:
         run: nix develop -c cargo test
   build-docker:
     name: Docker
+    needs: [lint, test]
     uses: hoprnet/hopr-workflows/.github/workflows/build-docker.yaml@fa71078959cf9f892185e8df16551720693a2cd1 # 0.9.3
     permissions:
       contents: read
@@ -55,6 +59,7 @@ jobs:
     with:
       source_branch: ${{ github.event.pull_request.head.ref || github.ref }}
       version_type: commit
+      concurrency_group_suffix: ${{ github.event.pull_request.number || github.ref_name }}
       build_matrix: |-
         [
           {
@@ -69,3 +74,21 @@ jobs:
       fail_on_scan_vulnerabilities: ${{ vars.FAIL_ON_SCAN_VULNERABILITIES }}
     secrets:
       cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+  # Single aggregate merge gate: green only if every other job succeeded.
+  # Mark THIS one required check in the branch ruleset, so adding, renaming
+  # or removing a job never needs a ruleset change. `if: always()` runs it
+  # even when a dependency fails; alls-green then fails on any non-success.
+  merge-gate:
+    name: Merge gate
+    if: always()
+    needs:
+      - lint
+      - test
+      - build-docker
+    runs-on: depot-ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: All jobs pass
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
