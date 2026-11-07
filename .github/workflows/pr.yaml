@@ -22,7 +22,7 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
       - name: Setup cachix cache
-        uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
+        uses: cachix/cachix-action@0203c83b2290520cb3784590a1283885371d5907 # v17 from 19.03.2026
         env:
           USER: runner
         with:
@@ -41,7 +41,7 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
       - name: Setup cachix cache
-        uses: cachix/cachix-action@1eb2ef646ac0255473d23a5907ad7b04ce94065c # v17 from 19.03.2026
+        uses: cachix/cachix-action@0203c83b2290520cb3784590a1283885371d5907 # v17 from 19.03.2026
         env:
           USER: runner
         with:
