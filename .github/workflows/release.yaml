@@ -39,8 +39,6 @@ jobs:
       docker_image_name: hose
       docker_image_format: skopeo
       fail_on_scan_vulnerabilities: ${{ vars.FAIL_ON_SCAN_VULNERABILITIES }}
-      deployment_namespace: hose
-      deployment_label_selector: app.kubernetes.io/name=hose
     secrets:
       cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
   release:
