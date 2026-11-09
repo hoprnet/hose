@@ -128,7 +128,7 @@
       },
       "original": {
         "owner": "hoprnet",
-        "ref": "v2.1.4",
+        "ref": "v1.4.0",
         "repo": "nix-lib",
         "type": "github"
       }
